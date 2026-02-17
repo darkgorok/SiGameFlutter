@@ -22,7 +22,8 @@ class GameActionUseCases {
     return _repository.createRoom(roomName: roomName);
   }
 
-  Future<void> joinRoom(String roomId) => _repository.joinRoom(roomId);
+  Future<void> joinRoom(String roomId, {PlayerRole role = PlayerRole.player}) =>
+      _repository.joinRoom(roomId, role: role);
 
   Future<void> markDisconnected(String roomId) {
     return _repository.markDisconnected(roomId);
@@ -33,6 +34,55 @@ class GameActionUseCases {
     required QuestionDraft draft,
   }) {
     return _repository.addQuestion(roomId: roomId, draft: draft);
+  }
+
+  Future<void> setPlayerRole({
+    required String roomId,
+    required String targetUid,
+    required PlayerRole role,
+  }) {
+    return _repository.setPlayerRole(
+      roomId: roomId,
+      targetUid: targetUid,
+      role: role,
+    );
+  }
+
+  Future<void> kickPlayer({required String roomId, required String targetUid}) {
+    return _repository.kickPlayer(roomId: roomId, targetUid: targetUid);
+  }
+
+  Future<void> banPlayer({
+    required String roomId,
+    required String targetUid,
+    String reason = '',
+  }) {
+    return _repository.banPlayer(
+      roomId: roomId,
+      targetUid: targetUid,
+      reason: reason,
+    );
+  }
+
+  Future<void> unbanPlayer({
+    required String roomId,
+    required String targetUid,
+  }) {
+    return _repository.unbanPlayer(roomId: roomId, targetUid: targetUid);
+  }
+
+  Future<PackSummary> savePack({required String roomId, required String name}) {
+    return _repository.savePack(roomId: roomId, name: name);
+  }
+
+  Future<List<PackSummary>> listPacks() => _repository.listPacks();
+
+  Future<void> applyPack({required String roomId, required String packId}) {
+    return _repository.applyPack(roomId: roomId, packId: packId);
+  }
+
+  Future<List<LeaderboardEntry>> getLeaderboard() {
+    return _repository.getLeaderboard();
   }
 
   Future<void> startGame(String roomId) => _repository.startGame(roomId);
@@ -62,11 +112,16 @@ class GameActionUseCases {
     return _repository.submitFinalWager(roomId: roomId, wager: wager);
   }
 
-  Future<void> submitFinalAnswer({
+  Future<void> setFinalPlayerResult({
     required String roomId,
-    required String answer,
+    required String targetUid,
+    required FinalResult result,
   }) {
-    return _repository.submitFinalAnswer(roomId: roomId, answer: answer);
+    return _repository.setFinalPlayerResult(
+      roomId: roomId,
+      targetUid: targetUid,
+      result: result,
+    );
   }
 
   Future<void> revealFinal(String roomId) => _repository.revealFinal(roomId);
@@ -88,8 +143,8 @@ class GameActionUseCases {
   }
 
   Future<void> buzz(String roomId) => _repository.buzz(roomId);
-  Future<void> submitAnswer(String roomId, String answer) {
-    return _repository.submitAnswer(roomId, answer);
+  Future<void> submitAnswer(String roomId) {
+    return _repository.submitAnswer(roomId);
   }
 
   Future<void> judgeAnswer({required String roomId, required bool correct}) {

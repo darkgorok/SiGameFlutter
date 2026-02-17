@@ -46,6 +46,9 @@ extension QuestionDtoToDomain on QuestionDto {
       round: (data['round'] as num?)?.toInt() ?? 1,
       used: data['used'] as bool? ?? false,
       type: QuestionType.fromValue(data['type'] as String?),
+      mediaUrl: data['mediaUrl'] as String? ?? '',
+      mediaType: QuestionMediaType.fromValue(data['mediaType'] as String?),
+      aliases: ((data['aliases'] as List?) ?? []).cast<String>(),
     );
   }
 }
@@ -55,11 +58,15 @@ extension PlayerDtoToDomain on PlayerDto {
     return PlayerModel(
       uid: id,
       nickname: data['nickname'] as String? ?? id,
+      avatarUrl: data['avatarUrl'] as String? ?? '',
+      role: PlayerRole.fromValue(data['role'] as String?),
       score: (data['score'] as num?)?.toInt() ?? 0,
       connected: data['connected'] as bool? ?? false,
       correctAnswers: (data['correctAnswers'] as num?)?.toInt() ?? 0,
       wrongAnswers: (data['wrongAnswers'] as num?)?.toInt() ?? 0,
       buzzCount: (data['buzzCount'] as num?)?.toInt() ?? 0,
+      finalWager: (data['finalWager'] as num?)?.toInt() ?? 0,
+      finalResult: FinalResult.fromValue(data['finalResult'] as String?),
     );
   }
 }

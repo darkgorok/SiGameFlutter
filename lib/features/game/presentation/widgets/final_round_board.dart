@@ -6,10 +6,16 @@ import '../../application/game_providers.dart';
 import '../../game_models.dart';
 
 class FinalRoundBoard extends ConsumerStatefulWidget {
-  const FinalRoundBoard({super.key, required this.room, required this.roomId});
+  const FinalRoundBoard({
+    super.key,
+    required this.room,
+    required this.roomId,
+    required this.myRole,
+  });
 
   final RoomModel room;
   final String roomId;
+  final PlayerRole myRole;
 
   @override
   ConsumerState<FinalRoundBoard> createState() => _FinalRoundBoardState();
@@ -20,7 +26,6 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
   final _questionCtrl = TextEditingController();
   final _answerCtrl = TextEditingController();
   final _wagerCtrl = TextEditingController(text: '100');
-  final _myFinalAnswerCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -28,7 +33,6 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
     _questionCtrl.dispose();
     _answerCtrl.dispose();
     _wagerCtrl.dispose();
-    _myFinalAnswerCtrl.dispose();
     super.dispose();
   }
 
@@ -38,6 +42,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final isHost = room.hostUid == uid;
     final actions = ref.read(gameActionsControllerProvider.notifier);
+    final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
 
     return Padding(
       padding: const EdgeInsets.all(12),
@@ -69,7 +74,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                     TextField(
                       controller: _answerCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'Ответ финала',
+                        labelText: 'Контрольный ответ (для ведущего)',
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -93,7 +98,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                         ElevatedButton(
                           onPressed: () =>
                               actions.openFinalAnswers(widget.roomId),
-                          child: const Text('Открыть ответы'),
+                          child: const Text('Начать голосовые ответы'),
                         ),
                         ElevatedButton(
                           onPressed: () => actions.revealFinal(widget.roomId),
@@ -110,7 +115,8 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
               room.finalQuestion != null)
             Text('Вопрос: ${room.finalQuestion}'),
           const SizedBox(height: 8),
-          if (room.phase == GamePhase.finalWagering)
+          if (room.phase == GamePhase.finalWagering &&
+              widget.myRole != PlayerRole.spectator)
             Row(
               children: [
                 Expanded(
@@ -133,24 +139,73 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
               ],
             ),
           if (room.phase == GamePhase.finalAnswering)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: _myFinalAnswerCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Ваш ответ в финале',
-                  ),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Ответы даются только голосом в Discord. Ведущий отмечает исход каждого ответа.',
                 ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => actions.submitFinalAnswer(
-                    roomId: widget.roomId,
-                    answer: _myFinalAnswerCtrl.text.trim(),
-                  ),
-                  child: const Text('Отправить финальный ответ'),
-                ),
-              ],
+              ),
+            ),
+          if (isHost && room.phase == GamePhase.finalAnswering)
+            playersAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Text('Ошибка: $error'),
+              data: (players) {
+                final eligible = players
+                    .where((p) => room.finalEligibleUids.contains(p.uid))
+                    .toList();
+                return Column(
+                  children: eligible
+                      .map(
+                        (p) => Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${p.nickname} | ставка: ${p.finalWager}'),
+                                Text('Решение: ${p.finalResult.label}'),
+                                Wrap(
+                                  spacing: 8,
+                                  children: [
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          actions.setFinalPlayerResult(
+                                            roomId: widget.roomId,
+                                            targetUid: p.uid,
+                                            result: FinalResult.correct,
+                                          ),
+                                      child: const Text('Верно'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          actions.setFinalPlayerResult(
+                                            roomId: widget.roomId,
+                                            targetUid: p.uid,
+                                            result: FinalResult.wrong,
+                                          ),
+                                      child: const Text('Неверно'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () =>
+                                          actions.setFinalPlayerResult(
+                                            roomId: widget.roomId,
+                                            targetUid: p.uid,
+                                            result: FinalResult.noAnswer,
+                                          ),
+                                      child: const Text('Без ответа'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
             ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,12 +12,17 @@ final bootstrapProvider = FutureProvider<void>((ref) async {
   }
   final uid = auth.currentUser!.uid;
   final prefs = await SharedPreferences.getInstance();
-  final nickname =
-      prefs.getString('profile_nickname') ??
-      'Игрок-${uid.substring(0, 5).toUpperCase()}';
+  final nickname = prefs.getString('profile_nickname')?.trim() ?? '';
   final avatarUrl = prefs.getString('profile_avatar') ?? '';
 
-  await ref
-      .read(gameRepositoryProvider)
-      .upsertProfile(uid: uid, nickname: nickname, avatarUrl: avatarUrl);
+  if (nickname.isNotEmpty) {
+    try {
+      await ref
+          .read(gameRepositoryProvider)
+          .upsertProfile(uid: uid, nickname: nickname, avatarUrl: avatarUrl);
+    } catch (error, stackTrace) {
+      debugPrint('bootstrap upsertProfile failed: $error');
+      debugPrint('$stackTrace');
+    }
+  }
 });

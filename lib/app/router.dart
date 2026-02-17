@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/game/game_models.dart';
 import '../features/game/presentation/screens/room_editor_screen.dart';
 import '../features/game/presentation/screens/room_screen.dart';
 import '../features/home/home_screen.dart';
@@ -28,7 +29,13 @@ class AppRouter {
       case AppRoutes.rooms:
         return MaterialPageRoute(builder: (_) => const RoomsScreen());
       case AppRoutes.room:
-        final roomId = settings.arguments! as String;
+        final args = settings.arguments;
+        if (args is RoomRouteArgs) {
+          return MaterialPageRoute(
+            builder: (_) => RoomScreen(roomId: args.roomId, role: args.role),
+          );
+        }
+        final roomId = args! as String;
         return MaterialPageRoute(builder: (_) => RoomScreen(roomId: roomId));
       case AppRoutes.roomEditor:
         final roomId = settings.arguments! as String;
@@ -42,4 +49,11 @@ class AppRouter {
         );
     }
   }
+}
+
+class RoomRouteArgs {
+  const RoomRouteArgs({required this.roomId, this.role = PlayerRole.player});
+
+  final String roomId;
+  final PlayerRole role;
 }

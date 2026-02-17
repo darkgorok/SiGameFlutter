@@ -11,6 +11,8 @@ class RoomTopBar extends ConsumerWidget {
     required this.room,
     required this.isHost,
     required this.canResume,
+    required this.canPause,
+    required this.canEdit,
     required this.roomId,
     required this.onOpenEditor,
   });
@@ -18,6 +20,8 @@ class RoomTopBar extends ConsumerWidget {
   final RoomModel room;
   final bool isHost;
   final bool canResume;
+  final bool canPause;
+  final bool canEdit;
   final String roomId;
   final VoidCallback onOpenEditor;
 
@@ -55,7 +59,7 @@ class RoomTopBar extends ConsumerWidget {
                 ElevatedButton(
                   onPressed: room.status == GameStatus.paused
                       ? (canResume ? () => actions.resumeGame(roomId) : null)
-                      : () => actions.pauseGame(roomId),
+                      : (canPause ? () => actions.pauseGame(roomId) : null),
                   child: Text(
                     room.status == GameStatus.paused ? 'Снять паузу' : 'Пауза',
                   ),
@@ -73,7 +77,7 @@ class RoomTopBar extends ConsumerWidget {
                   child: const Text('Финал'),
                 ),
                 ElevatedButton(
-                  onPressed: isHost ? onOpenEditor : null,
+                  onPressed: canEdit ? onOpenEditor : null,
                   child: const Text('Редактор'),
                 ),
               ],

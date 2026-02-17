@@ -14,13 +14,32 @@ abstract class GameRepository {
   });
 
   Future<String> createRoom({required String roomName});
-  Future<void> joinRoom(String roomId);
+  Future<void> joinRoom(String roomId, {PlayerRole role = PlayerRole.player});
   Future<void> markDisconnected(String roomId);
 
   Future<void> addQuestion({
     required String roomId,
     required QuestionDraft draft,
   });
+  Future<void> setPlayerRole({
+    required String roomId,
+    required String targetUid,
+    required PlayerRole role,
+  });
+  Future<void> kickPlayer({required String roomId, required String targetUid});
+  Future<void> banPlayer({
+    required String roomId,
+    required String targetUid,
+    String reason,
+  });
+  Future<void> unbanPlayer({
+    required String roomId,
+    required String targetUid,
+  });
+  Future<PackSummary> savePack({required String roomId, required String name});
+  Future<List<PackSummary>> listPacks();
+  Future<void> applyPack({required String roomId, required String packId});
+  Future<List<LeaderboardEntry>> getLeaderboard();
 
   Future<void> startGame(String roomId);
   Future<void> advanceToRound2(String roomId);
@@ -34,9 +53,10 @@ abstract class GameRepository {
   Future<void> openFinalWagers(String roomId);
   Future<void> openFinalAnswers(String roomId);
   Future<void> submitFinalWager({required String roomId, required int wager});
-  Future<void> submitFinalAnswer({
+  Future<void> setFinalPlayerResult({
     required String roomId,
-    required String answer,
+    required String targetUid,
+    required FinalResult result,
   });
   Future<void> revealFinal(String roomId);
 
@@ -48,7 +68,7 @@ abstract class GameRepository {
   Future<void> selectCatTarget(String roomId, String targetUid);
   Future<void> setWagerAndOpen({required String roomId, required int wager});
   Future<void> buzz(String roomId);
-  Future<void> submitAnswer(String roomId, String answer);
+  Future<void> submitAnswer(String roomId);
   Future<void> judgeAnswer({required String roomId, required bool correct});
 
   Future<void> applyScore({

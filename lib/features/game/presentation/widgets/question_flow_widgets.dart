@@ -7,10 +7,16 @@ import '../../game_models.dart';
 import '../controllers/game_ui_permissions.dart';
 
 class QuestionBoard extends ConsumerWidget {
-  const QuestionBoard({super.key, required this.room, required this.roomId});
+  const QuestionBoard({
+    super.key,
+    required this.room,
+    required this.roomId,
+    required this.myRole,
+  });
 
   final RoomModel room;
   final String roomId;
+  final PlayerRole myRole;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,7 +45,7 @@ class QuestionBoard extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           children: [
             if (room.activeQuestion != null)
-              ActiveQuestionPanel(room: room, roomId: roomId),
+              ActiveQuestionPanel(room: room, roomId: roomId, myRole: myRole),
             ...themes.map((theme) {
               final cells = grouped[theme]!;
               return Card(
@@ -85,33 +91,20 @@ class QuestionBoard extends ConsumerWidget {
   }
 }
 
-class ActiveQuestionPanel extends ConsumerStatefulWidget {
+class ActiveQuestionPanel extends ConsumerWidget {
   const ActiveQuestionPanel({
     super.key,
     required this.room,
     required this.roomId,
+    required this.myRole,
   });
 
   final RoomModel room;
   final String roomId;
+  final PlayerRole myRole;
 
   @override
-  ConsumerState<ActiveQuestionPanel> createState() =>
-      _ActiveQuestionPanelState();
-}
-
-class _ActiveQuestionPanelState extends ConsumerState<ActiveQuestionPanel> {
-  final _answerCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _answerCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final room = widget.room;
+  Widget build(BuildContext context, WidgetRef ref) {
     final active = room.activeQuestion;
     if (active == null) {
       return const SizedBox.shrink();
@@ -121,7 +114,7 @@ class _ActiveQuestionPanelState extends ConsumerState<ActiveQuestionPanel> {
     final actions = ref.read(gameActionsControllerProvider.notifier);
 
     return Card(
-      color: const Color(0xFFEFF4FF),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -133,41 +126,48 @@ class _ActiveQuestionPanelState extends ConsumerState<ActiveQuestionPanel> {
             ),
             const SizedBox(height: 6),
             Text(active.text),
+            if (active.mediaUrl.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Медиа: ${active.mediaType.label}'),
+              if (active.mediaType == QuestionMediaType.image)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Image.network(active.mediaUrl, height: 200),
+                )
+              else
+                Text(active.mediaUrl),
+            ],
             const SizedBox(height: 6),
             if (room.phase == GamePhase.questionReveal && isHost)
               ElevatedButton(
-                onPressed: () => actions.openBuzzing(widget.roomId),
+                onPressed: () => actions.openBuzzing(roomId),
                 child: const Text('Открыть кнопку ответа'),
               ),
             if (room.phase == GamePhase.catTargeting)
-              CatTargetingPanel(roomId: widget.roomId, room: room),
+              CatTargetingPanel(roomId: roomId, room: room),
             if (room.phase == GamePhase.wagerBidding)
-              WagerPanel(roomId: widget.roomId, room: room),
+              WagerPanel(roomId: roomId, room: room),
             if (room.phase == GamePhase.answering)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (room.currentAttemptUid != null)
                     Text('Отвечает: ${room.currentAttemptUid}'),
-                  if (room.currentAttemptUid == uid)
-                    TextField(
-                      controller: _answerCtrl,
-                      decoration: const InputDecoration(labelText: 'Ваш ответ'),
-                      onSubmitted: (_) => _submitAnswer(actions),
-                    ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: [
                       ElevatedButton(
                         onPressed: room.currentAttemptUid == uid
-                            ? () => _submitAnswer(actions)
+                            ? () => actions.submitAnswer(roomId)
                             : null,
-                        child: const Text('Отправить ответ'),
+                        child: const Text('Ответ дал голосом'),
                       ),
                       ElevatedButton(
-                        onPressed: GameUiPermissions.canBuzz(room, uid)
-                            ? () => actions.buzz(widget.roomId)
+                        onPressed:
+                            GameUiPermissions.canBuzz(room, uid) &&
+                                myRole != PlayerRole.spectator
+                            ? () => actions.buzz(roomId)
                             : null,
                         child: const Text('Жму кнопку'),
                       ),
@@ -176,24 +176,15 @@ class _ActiveQuestionPanelState extends ConsumerState<ActiveQuestionPanel> {
                 ],
               ),
             if (room.phase == GamePhase.answerReview && isHost)
-              HostJudgePanel(roomId: widget.roomId, room: room),
+              HostJudgePanel(roomId: roomId, room: room),
             if (room.phase == GamePhase.answerReview && !isHost)
-              const Text('Ответ отправлен: ожидается решение ведущего'),
+              const Text('Ожидается решение ведущего по голосовому ответу'),
             if (room.phase == GamePhase.boardSelect)
               const Text('Выберите следующий вопрос на табло'),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _submitAnswer(GameActionsController actions) async {
-    final text = _answerCtrl.text.trim();
-    if (text.isEmpty) {
-      return;
-    }
-    await actions.submitAnswer(widget.roomId, text);
-    _answerCtrl.clear();
   }
 }
 
@@ -219,10 +210,13 @@ class CatTargetingPanel extends ConsumerWidget {
       loading: () => const CircularProgressIndicator(),
       error: (error, stackTrace) => Text('Ошибка: $error'),
       data: (players) {
+        final candidates = players
+            .where((p) => p.role != PlayerRole.spectator)
+            .toList();
         return Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: players
+          children: candidates
               .map(
                 (p) => OutlinedButton(
                   onPressed: () => actions.selectCatTarget(roomId, p.uid),
@@ -298,8 +292,10 @@ class HostJudgePanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Ответ игрока: ${room.pendingAnswer ?? ''}'),
         Text('Кто ответил: ${room.currentAttemptUid ?? '-'}'),
+        const Text('Проверка ответа выполняется ведущим голосом'),
+        if (room.activeQuestion != null && room.activeQuestion!.aliases.isNotEmpty)
+          Text('Допустимые варианты: ${room.activeQuestion!.aliases.join(', ')}'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

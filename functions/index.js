@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 
 admin.initializeApp();
 
@@ -28,9 +28,57 @@ const GAME_PHASE = {
   GAME_OVER: 'game_over',
 };
 
+const PLAYER_ROLE = {
+  HOST: 'host',
+  PLAYER: 'player',
+  SPECTATOR: 'spectator',
+  EDITOR: 'editor',
+};
+
+const FINAL_RESULT = {
+  PENDING: 'pending',
+  CORRECT: 'correct',
+  WRONG: 'wrong',
+  NO_ANSWER: 'no_answer',
+};
+
+const ALLOWED_JOIN_ROLES = new Set([
+  PLAYER_ROLE.PLAYER,
+  PLAYER_ROLE.SPECTATOR,
+  PLAYER_ROLE.EDITOR,
+]);
+
 async function getProfile(uid) {
   const snap = await db.collection('profiles').doc(uid).get();
   return snap.data() || {};
+}
+
+async function getPlayerRole(roomRef, uid, tx = null) {
+  const playerRef = roomRef.collection('players').doc(uid);
+  const snap = tx ? await tx.get(playerRef) : await playerRef.get();
+  return snap.data()?.role || null;
+}
+
+async function assertRoomMember(roomRef, uid, tx = null) {
+  const role = await getPlayerRole(roomRef, uid, tx);
+  if (!role) {
+    throw new functions.https.HttpsError('permission-denied', 'Только участник комнаты');
+  }
+  return role;
+}
+
+function canEditContent(role) {
+  return role === PLAYER_ROLE.HOST || role === PLAYER_ROLE.EDITOR;
+}
+
+function normalizeAliases(raw) {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const cleaned = raw
+    .map((v) => String(v || '').trim())
+    .filter((v) => v.length > 0);
+  return [...new Set(cleaned)].slice(0, 20);
 }
 
 async function logEvent(roomId, actorUid, type, message) {
@@ -64,11 +112,14 @@ function normalizeAnswer(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function ensureVoiceRole(role) {
+  return role !== PLAYER_ROLE.SPECTATOR;
+}
+
 async function revealFinalByHost(roomRef, roomId, hostUid) {
   await requireHost(roomRef, hostUid);
   const roomSnap = await roomRef.get();
   const room = roomSnap.data() || {};
-  const finalAnswer = normalizeAnswer(room.finalAnswer || '');
   const eligible = Array.isArray(room.finalEligibleUids)
     ? room.finalEligibleUids
     : [];
@@ -83,16 +134,17 @@ async function revealFinalByHost(roomRef, roomId, hostUid) {
 
     const player = p.data();
     const wager = Number(player.finalWager || 0);
-    const answer = normalizeAnswer(player.finalAnswer || '');
-    const correct = answer === finalAnswer;
-    const delta = correct ? wager : -wager;
+    const result = String(player.finalResult || FINAL_RESULT.PENDING);
+    const correct = result === FINAL_RESULT.CORRECT;
+    const wrong = result === FINAL_RESULT.WRONG;
+    const delta = correct ? wager : wrong ? -wager : 0;
 
     batch.set(
       p.ref,
       {
         score: FieldValue.increment(delta),
         correctAnswers: FieldValue.increment(correct ? 1 : 0),
-        wrongAnswers: FieldValue.increment(correct ? 0 : 1),
+        wrongAnswers: FieldValue.increment(wrong ? 1 : 0),
         finalRevealed: true,
       },
       { merge: true },
@@ -108,6 +160,34 @@ async function revealFinalByHost(roomRef, roomId, hostUid) {
   });
 
   await batch.commit();
+  const finalPlayers = await roomRef.collection('players').get();
+  const sorted = [...finalPlayers.docs].sort(
+    (a, b) => Number(b.data().score || 0) - Number(a.data().score || 0),
+  );
+  const winnerUid = sorted.isEmpty ? null : sorted.first.id;
+  const leaderboardBatch = db.batch();
+  sorted.forEach((doc) => {
+    const score = Number(doc.data().score || 0);
+    const lbRef = db
+      .collection('tournaments')
+      .doc('default')
+      .collection('leaderboard')
+      .doc(doc.id);
+    leaderboardBatch.set(
+      lbRef,
+      {
+        uid: doc.id,
+        nickname: doc.data().nickname || doc.id,
+        avatarUrl: doc.data().avatarUrl || '',
+        games: FieldValue.increment(1),
+        totalScore: FieldValue.increment(score),
+        wins: FieldValue.increment(doc.id === winnerUid ? 1 : 0),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+  await leaderboardBatch.commit();
   await logEvent(roomId, hostUid, 'final_reveal', 'Финал вскрыт, игра завершена');
 }
 
@@ -265,6 +345,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     await roomRef.collection('players').doc(uid).set({
       nickname: profile.nickname || 'Игрок',
       avatarUrl: profile.avatarUrl || '',
+      role: PLAYER_ROLE.HOST,
       score: 0,
       connected: true,
       isHost: true,
@@ -272,6 +353,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       wrongAnswers: 0,
       buzzCount: 0,
       finalWager: 0,
+      finalResult: FINAL_RESULT.PENDING,
       finalAnswer: null,
     });
 
@@ -296,6 +378,43 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     return { ok: true };
   }
 
+  if (command === 'list_packs') {
+    const snaps = await db
+      .collection('packs')
+      .orderBy('updatedAt', 'desc')
+      .limit(30)
+      .get();
+    return {
+      packs: snaps.docs.map((d) => ({
+        id: d.id,
+        name: d.data().name || d.id,
+        version: Number(d.data().version || 1),
+        questionCount: Number(d.data().questionCount || 0),
+        updatedAt: d.data().updatedAt || null,
+      })),
+    };
+  }
+
+  if (command === 'get_leaderboard') {
+    const snaps = await db
+      .collection('tournaments')
+      .doc('default')
+      .collection('leaderboard')
+      .orderBy('wins', 'desc')
+      .orderBy('totalScore', 'desc')
+      .limit(20)
+      .get();
+    return {
+      leaderboard: snaps.docs.map((d) => ({
+        uid: d.id,
+        nickname: d.data().nickname || d.id,
+        games: Number(d.data().games || 0),
+        wins: Number(d.data().wins || 0),
+        totalScore: Number(d.data().totalScore || 0),
+      })),
+    };
+  }
+
   const roomId = String(data?.roomId || payload.roomId || '');
   if (!roomId) {
     throw new functions.https.HttpsError('invalid-argument', 'roomId required');
@@ -305,23 +424,137 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
 
   if (command === 'join_room') {
     const profile = await getProfile(uid);
-    await roomRef.collection('players').doc(uid).set(
+    const requestedRole = String(payload.role || PLAYER_ROLE.PLAYER);
+    const allowedRole = ALLOWED_JOIN_ROLES.has(requestedRole)
+      ? requestedRole
+      : PLAYER_ROLE.PLAYER;
+
+    await db.runTransaction(async (tx) => {
+      const roomSnap = await tx.get(roomRef);
+      if (!roomSnap.exists) {
+        throw new functions.https.HttpsError('not-found', 'Room not found');
+      }
+      const banSnap = await tx.get(roomRef.collection('bans').doc(uid));
+      if (banSnap.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Вы заблокированы в этой комнате');
+      }
+      const room = roomSnap.data() || {};
+      const isHost = room.hostUid === uid;
+      const playerRef = roomRef.collection('players').doc(uid);
+      const playerSnap = await tx.get(playerRef);
+      const existing = playerSnap.data() || {};
+      const role = isHost ? PLAYER_ROLE.HOST : allowedRole;
+
+      tx.set(
+        playerRef,
+        {
+          nickname: profile.nickname || existing.nickname || 'Игрок',
+          avatarUrl: profile.avatarUrl || existing.avatarUrl || '',
+          role,
+          connected: true,
+          score: playerSnap.exists
+            ? FieldValue.increment(0)
+            : Number(existing.score || 0),
+          isHost,
+          correctAnswers: playerSnap.exists
+            ? FieldValue.increment(0)
+            : Number(existing.correctAnswers || 0),
+          wrongAnswers: playerSnap.exists
+            ? FieldValue.increment(0)
+            : Number(existing.wrongAnswers || 0),
+          buzzCount: playerSnap.exists
+            ? FieldValue.increment(0)
+            : Number(existing.buzzCount || 0),
+          finalWager: playerSnap.exists
+            ? FieldValue.increment(0)
+            : Number(existing.finalWager || 0),
+          finalResult: existing.finalResult || FINAL_RESULT.PENDING,
+        },
+        { merge: true },
+      );
+      tx.update(roomRef, { updatedAt: FieldValue.serverTimestamp() });
+    });
+    await logEvent(roomId, uid, 'join', 'Игрок вошел в комнату');
+    return { ok: true };
+  }
+
+  if (command === 'set_player_role') {
+    const targetUid = String(payload.targetUid || '');
+    const role = String(payload.role || PLAYER_ROLE.PLAYER);
+    if (!targetUid || targetUid === uid) {
+      throw new functions.https.HttpsError('invalid-argument', 'targetUid required');
+    }
+    if (!ALLOWED_JOIN_ROLES.has(role)) {
+      throw new functions.https.HttpsError('invalid-argument', 'invalid role');
+    }
+    const roomSnap = await requireHost(roomRef, uid);
+    const room = roomSnap.data() || {};
+    if (room.hostUid === targetUid) {
+      throw new functions.https.HttpsError('failed-precondition', 'Нельзя менять роль ведущего');
+    }
+    await roomRef.collection('players').doc(targetUid).set({ role }, { merge: true });
+    await logEvent(roomId, uid, 'role_change', 'Роль игрока изменена');
+    return { ok: true };
+  }
+
+  if (command === 'kick_player') {
+    const targetUid = String(payload.targetUid || '');
+    if (!targetUid || targetUid === uid) {
+      throw new functions.https.HttpsError('invalid-argument', 'targetUid required');
+    }
+    const roomSnap = await requireHost(roomRef, uid);
+    const room = roomSnap.data() || {};
+    if (room.hostUid === targetUid) {
+      throw new functions.https.HttpsError('failed-precondition', 'Нельзя кикнуть ведущего');
+    }
+    await roomRef.collection('players').doc(targetUid).set(
+      { connected: false, kickedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    await logEvent(roomId, uid, 'kick', 'Игрок кикнут из комнаты');
+    return { ok: true };
+  }
+
+  if (command === 'ban_player') {
+    const targetUid = String(payload.targetUid || '');
+    const reason = String(payload.reason || '').trim();
+    if (!targetUid || targetUid === uid) {
+      throw new functions.https.HttpsError('invalid-argument', 'targetUid required');
+    }
+    const roomSnap = await requireHost(roomRef, uid);
+    const room = roomSnap.data() || {};
+    if (room.hostUid === targetUid) {
+      throw new functions.https.HttpsError('failed-precondition', 'Нельзя банить ведущего');
+    }
+    const batch = db.batch();
+    batch.set(
+      roomRef.collection('bans').doc(targetUid),
       {
-        nickname: profile.nickname || 'Игрок',
-        avatarUrl: profile.avatarUrl || '',
-        connected: true,
-        score: FieldValue.increment(0),
-        isHost: false,
-        correctAnswers: FieldValue.increment(0),
-        wrongAnswers: FieldValue.increment(0),
-        buzzCount: FieldValue.increment(0),
-        finalWager: FieldValue.increment(0),
-        finalAnswer: null,
+        uid: targetUid,
+        reason,
+        bannedBy: uid,
+        createdAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
-    await roomRef.update({ updatedAt: FieldValue.serverTimestamp() });
-    await logEvent(roomId, uid, 'join', 'Игрок вошел в комнату');
+    batch.set(
+      roomRef.collection('players').doc(targetUid),
+      { connected: false, role: PLAYER_ROLE.SPECTATOR },
+      { merge: true },
+    );
+    await batch.commit();
+    await logEvent(roomId, uid, 'ban', 'Игрок забанен');
+    return { ok: true };
+  }
+
+  if (command === 'unban_player') {
+    const targetUid = String(payload.targetUid || '');
+    if (!targetUid) {
+      throw new functions.https.HttpsError('invalid-argument', 'targetUid required');
+    }
+    await requireHost(roomRef, uid);
+    await roomRef.collection('bans').doc(targetUid).delete();
+    await logEvent(roomId, uid, 'unban', 'Бан игрока снят');
     return { ok: true };
   }
 
@@ -335,10 +568,12 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     await roomRef.collection('questions').add({
       theme: String(payload.theme || '').trim() || 'Без темы',
       text: String(payload.text || ''),
-      answer: String(payload.answer || ''),
       cost: Number(payload.cost || 100),
       round: Number(payload.round || 1),
       type: String(payload.type || 'normal'),
+      mediaUrl: String(payload.mediaUrl || ''),
+      mediaType: String(payload.mediaType || 'none'),
+      aliases: normalizeAliases(payload.aliases || []),
       used: false,
       createdBy: uid,
       createdAt: FieldValue.serverTimestamp(),
@@ -347,18 +582,102 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     return { ok: true };
   }
 
+  if (command === 'save_pack') {
+    const role = await assertRoomMember(roomRef, uid);
+    if (!canEditContent(role)) {
+      throw new functions.https.HttpsError('permission-denied', 'Только ведущий или редактор');
+    }
+    const packName = String(payload.name || '').trim() || `Pack-${roomId}`;
+    const questions = await roomRef.collection('questions').get();
+    const items = questions.docs.map((q) => ({
+      theme: q.data().theme || 'Без темы',
+      text: q.data().text || '',
+      cost: Number(q.data().cost || 100),
+      round: Number(q.data().round || 1),
+      type: q.data().type || 'normal',
+      mediaUrl: q.data().mediaUrl || '',
+      mediaType: q.data().mediaType || 'none',
+      aliases: normalizeAliases(q.data().aliases || []),
+    }));
+
+    const existing = await db
+      .collection('packs')
+      .where('name', '==', packName)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .get();
+    const version = existing.empty ? 1 : Number(existing.docs.first.data().version || 1) + 1;
+    const packRef = db.collection('packs').doc();
+    await packRef.set({
+      name: packName,
+      version,
+      questionCount: items.length,
+      questions: items,
+      createdBy: uid,
+      roomId,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    await logEvent(roomId, uid, 'pack_save', `Пакет сохранен: ${packName} v${version}`);
+    return { ok: true, packId: packRef.id, version };
+  }
+
+  if (command === 'apply_pack') {
+    const packId = String(payload.packId || '');
+    if (!packId) {
+      throw new functions.https.HttpsError('invalid-argument', 'packId required');
+    }
+    const role = await assertRoomMember(roomRef, uid);
+    if (!(role === PLAYER_ROLE.HOST || role === PLAYER_ROLE.EDITOR)) {
+      throw new functions.https.HttpsError('permission-denied', 'Только ведущий или редактор');
+    }
+    const packSnap = await db.collection('packs').doc(packId).get();
+    if (!packSnap.exists) {
+      throw new functions.https.HttpsError('not-found', 'Pack not found');
+    }
+    const pack = packSnap.data() || {};
+    const questions = Array.isArray(pack.questions) ? pack.questions : [];
+    const batch = db.batch();
+    for (const q of questions.slice(0, 500)) {
+      const qRef = roomRef.collection('questions').doc();
+      batch.set(qRef, {
+        theme: String(q.theme || 'Без темы'),
+        text: String(q.text || ''),
+        cost: Number(q.cost || 100),
+        round: Number(q.round || 1),
+        type: String(q.type || 'normal'),
+        mediaUrl: String(q.mediaUrl || ''),
+        mediaType: String(q.mediaType || 'none'),
+        aliases: normalizeAliases(q.aliases || []),
+        used: false,
+        createdBy: uid,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+    await logEvent(roomId, uid, 'pack_apply', `Пакет применен: ${pack.name || packId}`);
+    return { ok: true, imported: questions.length };
+  }
+
   if (command === 'start_game') {
     await requireHost(roomRef, uid);
-    await roomRef.update({
+    const questions = await roomRef.collection('questions').get();
+    const batch = db.batch();
+    questions.docs.forEach((q) => {
+      batch.update(q.ref, { answer: FieldValue.delete() });
+    });
+    batch.update(roomRef, {
       status: GAME_STATUS.IN_GAME,
       phase: GAME_PHASE.BOARD_SELECT,
       currentRound: 1,
       chooserUid: uid,
       pausedByUid: null,
+      finalAnswer: FieldValue.delete(),
       timerDeadlineAtMs: null,
       timerRemainingMs: null,
       updatedAt: FieldValue.serverTimestamp(),
     });
+    await batch.commit();
     await logEvent(roomId, uid, 'start', 'Игра запущена');
     return { ok: true };
   }
@@ -379,7 +698,11 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     await requireHost(roomRef, uid);
     const players = await roomRef.collection('players').get();
     const eligible = players.docs
-      .filter((p) => Number(p.data().score || 0) > 0)
+      .filter((p) => {
+        const score = Number(p.data().score || 0);
+        const role = String(p.data().role || PLAYER_ROLE.PLAYER);
+        return score > 0 && ensureVoiceRole(role);
+      })
       .map((p) => p.id);
 
     await roomRef.update({
@@ -403,7 +726,6 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     await roomRef.update({
       finalTheme: String(payload.theme || ''),
       finalQuestion: String(payload.question || ''),
-      finalAnswer: String(payload.answer || ''),
       phase: GAME_PHASE.FINAL_SETUP,
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -416,7 +738,15 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     const players = await roomRef.collection('players').get();
     const batch = db.batch();
     players.docs.forEach((p) => {
-      batch.set(p.ref, { finalWager: 0, finalAnswer: null }, { merge: true });
+      batch.set(
+        p.ref,
+        {
+          finalWager: 0,
+          finalResult: FINAL_RESULT.PENDING,
+          finalAnswer: null,
+        },
+        { merge: true },
+      );
     });
     batch.update(roomRef, {
       phase: GAME_PHASE.FINAL_WAGERING,
@@ -433,11 +763,11 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     await requireHost(roomRef, uid);
     await roomRef.update({
       phase: GAME_PHASE.FINAL_ANSWERING,
-      timerDeadlineAtMs: Date.now() + 45000,
+      timerDeadlineAtMs: Date.now() + 90000,
       timerRemainingMs: null,
       updatedAt: FieldValue.serverTimestamp(),
     });
-    await logEvent(roomId, uid, 'final_answers_open', 'Открыты ответы финала');
+    await logEvent(roomId, uid, 'final_answers_open', 'Начат этап голосовых ответов');
     return { ok: true };
   }
 
@@ -468,26 +798,39 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     return { ok: true };
   }
 
-  if (command === 'submit_final_answer') {
-    await db.runTransaction(async (tx) => {
-      const roomSnap = await tx.get(roomRef);
-      const room = roomSnap.data() || {};
-      if (room.phase !== GAME_PHASE.FINAL_ANSWERING) {
-        throw new functions.https.HttpsError('failed-precondition', 'Финальные ответы закрыты');
-      }
-      const eligible = Array.isArray(room.finalEligibleUids)
-        ? room.finalEligibleUids
-        : [];
-      if (!eligible.includes(uid)) {
-        throw new functions.https.HttpsError('permission-denied', 'Вы не участвуете в финале');
-      }
-      tx.set(
-        roomRef.collection('players').doc(uid),
-        { finalAnswer: String(payload.answer || '') },
-        { merge: true },
-      );
-    });
-    await logEvent(roomId, uid, 'final_answer', 'Ответ финала отправлен');
+  if (command === 'set_final_player_result') {
+    const targetUid = String(payload.targetUid || '');
+    const result = String(payload.result || FINAL_RESULT.PENDING);
+    const normalized = [
+      FINAL_RESULT.CORRECT,
+      FINAL_RESULT.WRONG,
+      FINAL_RESULT.NO_ANSWER,
+      FINAL_RESULT.PENDING,
+    ].includes(result)
+      ? result
+      : FINAL_RESULT.PENDING;
+
+    await requireHost(roomRef, uid);
+    const roomSnap = await roomRef.get();
+    const room = roomSnap.data() || {};
+    if (room.phase !== GAME_PHASE.FINAL_ANSWERING) {
+      throw new functions.https.HttpsError('failed-precondition', 'Этап финальных ответов не активен');
+    }
+    if (!targetUid) {
+      throw new functions.https.HttpsError('invalid-argument', 'targetUid required');
+    }
+    const eligible = Array.isArray(room.finalEligibleUids)
+      ? room.finalEligibleUids
+      : [];
+    if (!eligible.includes(targetUid)) {
+      throw new functions.https.HttpsError('failed-precondition', 'Игрок не участвует в финале');
+    }
+
+    await roomRef.collection('players').doc(targetUid).set(
+      { finalResult: normalized },
+      { merge: true },
+    );
+    await logEvent(roomId, uid, 'final_mark', 'Ведущий выставил результат финального ответа');
     return { ok: true };
   }
 
@@ -543,9 +886,12 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
           id: questionId,
           theme: q.theme || 'Без темы',
           text: q.text || '',
-          answer: q.answer || '',
+          answer: '',
           cost: Number(q.cost || 100),
           type,
+          mediaUrl: q.mediaUrl || '',
+          mediaType: q.mediaType || 'none',
+          aliases: normalizeAliases(q.aliases || []),
         },
         buzzQueue: [],
         currentAttemptUid: null,
@@ -599,6 +945,10 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       if (room.chooserUid !== uid && room.hostUid !== uid) {
         throw new functions.https.HttpsError('permission-denied', 'Нет прав выбрать игрока');
       }
+      const targetRole = await getPlayerRole(roomRef, targetUid, tx);
+      if (!ensureVoiceRole(targetRole)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Нельзя выбрать зрителя');
+      }
       tx.update(roomRef, {
         targetedUid: targetUid,
         phase: GAME_PHASE.ANSWERING,
@@ -629,6 +979,10 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       const actorUid = room.chooserUid || uid;
       const actorRef = roomRef.collection('players').doc(actorUid);
       const actorSnap = await tx.get(actorRef);
+      const actorRole = actorSnap.data()?.role || PLAYER_ROLE.PLAYER;
+      if (!ensureVoiceRole(actorRole)) {
+        throw new functions.https.HttpsError('permission-denied', 'Зритель не может ставить');
+      }
       const score = Number(actorSnap.data()?.score || 0);
       const maxWager = score > 0 ? score : Number(room.activeQuestion?.cost || 100);
       const safeWager = Math.max(100, Math.min(wager, maxWager));
@@ -655,6 +1009,10 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
 
       if (room.phase !== GAME_PHASE.ANSWERING || room.status === GAME_STATUS.PAUSED) {
         throw new functions.https.HttpsError('failed-precondition', 'Кнопка сейчас закрыта');
+      }
+      const role = await getPlayerRole(roomRef, uid, tx);
+      if (!ensureVoiceRole(role)) {
+        throw new functions.https.HttpsError('permission-denied', 'Зритель не участвует в ответах');
       }
       if (room.currentAttemptUid) {
         throw new functions.https.HttpsError('failed-precondition', 'Сейчас уже есть отвечающий игрок');
@@ -685,7 +1043,6 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
   }
 
   if (command === 'submit_answer') {
-    const answer = String(payload.answer || '');
     await db.runTransaction(async (tx) => {
       const roomSnap = await tx.get(roomRef);
       const room = roomSnap.data() || {};
@@ -696,14 +1053,14 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('permission-denied', 'Сейчас отвечает другой игрок');
       }
       tx.update(roomRef, {
-        pendingAnswer: answer,
+        pendingAnswer: '[voice]',
         phase: GAME_PHASE.ANSWER_REVIEW,
         timerDeadlineAtMs: null,
         timerRemainingMs: null,
         updatedAt: FieldValue.serverTimestamp(),
       });
     });
-    await logEvent(roomId, uid, 'answer_submit', 'Игрок отправил ответ');
+    await logEvent(roomId, uid, 'answer_submit', 'Игрок дал голосовой ответ');
     return { ok: true };
   }
 
@@ -808,6 +1165,10 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     await db.runTransaction(async (tx) => {
       const roomSnap = await tx.get(roomRef);
       const room = roomSnap.data() || {};
+      const role = await getPlayerRole(roomRef, uid, tx);
+      if (uid !== room.hostUid && !ensureVoiceRole(role)) {
+        throw new functions.https.HttpsError('permission-denied', 'Зритель не может ставить паузу');
+      }
       if (room.status === GAME_STATUS.PAUSED) {
         return;
       }

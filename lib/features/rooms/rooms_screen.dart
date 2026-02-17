@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/router.dart';
 import '../game/application/game_providers.dart';
+import '../game/game_models.dart';
 
 class RoomsScreen extends ConsumerStatefulWidget {
   const RoomsScreen({super.key});
@@ -86,13 +87,37 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                           children: [
                             ElevatedButton(
                               onPressed: () async {
-                                await actions.joinRoom(room.id);
+                                await actions.joinRoom(
+                                  room.id,
+                                  role: PlayerRole.player,
+                                );
                                 if (!context.mounted) return;
-                                Navigator.of(
-                                  context,
-                                ).pushNamed(AppRoutes.room, arguments: room.id);
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.room,
+                                  arguments: RoomRouteArgs(
+                                    roomId: room.id,
+                                    role: PlayerRole.player,
+                                  ),
+                                );
                               },
-                              child: const Text('Войти'),
+                              child: const Text('Игрок'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () async {
+                                await actions.joinRoom(
+                                  room.id,
+                                  role: PlayerRole.spectator,
+                                );
+                                if (!context.mounted) return;
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.room,
+                                  arguments: RoomRouteArgs(
+                                    roomId: room.id,
+                                    role: PlayerRole.spectator,
+                                  ),
+                                );
+                              },
+                              child: const Text('Зритель'),
                             ),
                           ],
                         ),

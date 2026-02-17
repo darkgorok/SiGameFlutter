@@ -77,7 +77,8 @@ class GameRepositoryImpl implements GameRepository {
       _service.createRoom(roomName: roomName);
 
   @override
-  Future<void> joinRoom(String roomId) => _service.joinRoom(roomId);
+  Future<void> joinRoom(String roomId, {PlayerRole role = PlayerRole.player}) =>
+      _service.joinRoom(roomId, role: role);
 
   @override
   Future<void> markDisconnected(String roomId) =>
@@ -88,6 +89,42 @@ class GameRepositoryImpl implements GameRepository {
     required String roomId,
     required QuestionDraft draft,
   }) => _service.addQuestion(roomId: roomId, draft: draft);
+
+  @override
+  Future<void> setPlayerRole({
+    required String roomId,
+    required String targetUid,
+    required PlayerRole role,
+  }) => _service.setPlayerRole(roomId: roomId, targetUid: targetUid, role: role);
+
+  @override
+  Future<void> kickPlayer({required String roomId, required String targetUid}) =>
+      _service.kickPlayer(roomId: roomId, targetUid: targetUid);
+
+  @override
+  Future<void> banPlayer({
+    required String roomId,
+    required String targetUid,
+    String reason = '',
+  }) => _service.banPlayer(roomId: roomId, targetUid: targetUid, reason: reason);
+
+  @override
+  Future<void> unbanPlayer({required String roomId, required String targetUid}) =>
+      _service.unbanPlayer(roomId: roomId, targetUid: targetUid);
+
+  @override
+  Future<PackSummary> savePack({required String roomId, required String name}) =>
+      _service.savePack(roomId: roomId, name: name);
+
+  @override
+  Future<List<PackSummary>> listPacks() => _service.listPacks();
+
+  @override
+  Future<void> applyPack({required String roomId, required String packId}) =>
+      _service.applyPack(roomId: roomId, packId: packId);
+
+  @override
+  Future<List<LeaderboardEntry>> getLeaderboard() => _service.getLeaderboard();
 
   @override
   Future<void> startGame(String roomId) => _service.startGame(roomId);
@@ -126,10 +163,15 @@ class GameRepositoryImpl implements GameRepository {
       _service.submitFinalWager(roomId: roomId, wager: wager);
 
   @override
-  Future<void> submitFinalAnswer({
+  Future<void> setFinalPlayerResult({
     required String roomId,
-    required String answer,
-  }) => _service.submitFinalAnswer(roomId: roomId, answer: answer);
+    required String targetUid,
+    required FinalResult result,
+  }) => _service.setFinalPlayerResult(
+    roomId: roomId,
+    targetUid: targetUid,
+    result: result,
+  );
 
   @override
   Future<void> revealFinal(String roomId) => _service.revealFinal(roomId);
@@ -155,8 +197,7 @@ class GameRepositoryImpl implements GameRepository {
   Future<void> buzz(String roomId) => _service.buzz(roomId);
 
   @override
-  Future<void> submitAnswer(String roomId, String answer) =>
-      _service.submitAnswer(roomId, answer);
+  Future<void> submitAnswer(String roomId) => _service.submitAnswer(roomId);
 
   @override
   Future<void> judgeAnswer({required String roomId, required bool correct}) =>

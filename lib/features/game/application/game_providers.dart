@@ -41,6 +41,10 @@ final eventsStreamProvider =
       return ref.watch(gameReadUseCasesProvider).watchEvents(roomId);
     });
 
+final leaderboardProvider = FutureProvider<List<LeaderboardEntry>>((ref) {
+  return ref.watch(gameActionUseCasesProvider).getLeaderboard();
+});
+
 final gameActionsControllerProvider =
     AsyncNotifierProvider<GameActionsController, void>(
       GameActionsController.new,
@@ -68,8 +72,11 @@ class GameActionsController extends AsyncNotifier<void> {
     return result.requireValue;
   }
 
-  Future<void> joinRoom(String roomId) async {
-    state = await AsyncValue.guard(() => _actions.joinRoom(roomId));
+  Future<void> joinRoom(
+    String roomId, {
+    PlayerRole role = PlayerRole.player,
+  }) async {
+    state = await AsyncValue.guard(() => _actions.joinRoom(roomId, role: role));
     if (state.hasError) throw state.error!;
   }
 
@@ -102,6 +109,74 @@ class GameActionsController extends AsyncNotifier<void> {
     if (state.hasError) throw state.error!;
   }
 
+  Future<void> setPlayerRole({
+    required String roomId,
+    required String targetUid,
+    required PlayerRole role,
+  }) async => _runVoid(
+    () => _actions.setPlayerRole(
+      roomId: roomId,
+      targetUid: targetUid,
+      role: role,
+    ),
+  );
+
+  Future<void> kickPlayer({
+    required String roomId,
+    required String targetUid,
+  }) async => _runVoid(
+    () => _actions.kickPlayer(roomId: roomId, targetUid: targetUid),
+  );
+
+  Future<void> banPlayer({
+    required String roomId,
+    required String targetUid,
+    String reason = '',
+  }) async => _runVoid(
+    () => _actions.banPlayer(
+      roomId: roomId,
+      targetUid: targetUid,
+      reason: reason,
+    ),
+  );
+
+  Future<void> unbanPlayer({
+    required String roomId,
+    required String targetUid,
+  }) async => _runVoid(
+    () => _actions.unbanPlayer(roomId: roomId, targetUid: targetUid),
+  );
+
+  Future<PackSummary> savePack({
+    required String roomId,
+    required String name,
+  }) async {
+    state = const AsyncLoading();
+    final result = await AsyncValue.guard(
+      () => _actions.savePack(roomId: roomId, name: name),
+    );
+    if (result.hasError) {
+      state = AsyncError(
+        result.error!,
+        result.stackTrace ?? StackTrace.current,
+      );
+      throw result.error!;
+    }
+    state = const AsyncData(null);
+    return result.requireValue;
+  }
+
+  Future<List<PackSummary>> listPacks() => _actions.listPacks();
+
+  Future<void> applyPack({
+    required String roomId,
+    required String packId,
+  }) async => _runVoid(
+    () => _actions.applyPack(roomId: roomId, packId: packId),
+  );
+
+  Future<List<LeaderboardEntry>> getLeaderboard() => _actions.getLeaderboard();
+
   Future<void> startGame(String roomId) async =>
       _runVoid(() => _actions.startGame(roomId));
   Future<void> advanceToRound2(String roomId) async =>
@@ -130,12 +205,19 @@ class GameActionsController extends AsyncNotifier<void> {
     required int wager,
   }) async =>
       _runVoid(() => _actions.submitFinalWager(roomId: roomId, wager: wager));
-  Future<void> submitFinalAnswer({
+
+  Future<void> setFinalPlayerResult({
     required String roomId,
-    required String answer,
+    required String targetUid,
+    required FinalResult result,
   }) async => _runVoid(
-    () => _actions.submitFinalAnswer(roomId: roomId, answer: answer),
+    () => _actions.setFinalPlayerResult(
+      roomId: roomId,
+      targetUid: targetUid,
+      result: result,
+    ),
   );
+
   Future<void> revealFinal(String roomId) async =>
       _runVoid(() => _actions.revealFinal(roomId));
   Future<void> pickQuestion({
@@ -155,8 +237,8 @@ class GameActionsController extends AsyncNotifier<void> {
       _runVoid(() => _actions.setWagerAndOpen(roomId: roomId, wager: wager));
   Future<void> buzz(String roomId) async =>
       _runVoid(() => _actions.buzz(roomId));
-  Future<void> submitAnswer(String roomId, String answer) async =>
-      _runVoid(() => _actions.submitAnswer(roomId, answer));
+  Future<void> submitAnswer(String roomId) async =>
+      _runVoid(() => _actions.submitAnswer(roomId));
   Future<void> judgeAnswer({
     required String roomId,
     required bool correct,

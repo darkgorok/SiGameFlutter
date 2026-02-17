@@ -29,7 +29,7 @@ enum GamePhase {
   answerReview('answer_review', 'Решение ведущего'),
   finalSetup('final_setup', 'Финал: настройка'),
   finalWagering('final_wagering', 'Финал: ставки'),
-  finalAnswering('final_answering', 'Финал: ответы'),
+  finalAnswering('final_answering', 'Финал: голосовые ответы'),
   finalReveal('final_reveal', 'Финал: вскрытие'),
   gameOver('game_over', 'Игра завершена');
 
@@ -62,6 +62,60 @@ enum QuestionType {
   }
 }
 
+enum QuestionMediaType {
+  none('none', 'Без медиа'),
+  image('image', 'Изображение'),
+  audio('audio', 'Аудио'),
+  video('video', 'Видео');
+
+  const QuestionMediaType(this.value, this.label);
+  final String value;
+  final String label;
+
+  static QuestionMediaType fromValue(String? value) {
+    return QuestionMediaType.values.firstWhere(
+      (v) => v.value == value,
+      orElse: () => QuestionMediaType.none,
+    );
+  }
+}
+
+enum PlayerRole {
+  host('host', 'Ведущий'),
+  player('player', 'Игрок'),
+  spectator('spectator', 'Зритель'),
+  editor('editor', 'Редактор');
+
+  const PlayerRole(this.value, this.label);
+  final String value;
+  final String label;
+
+  static PlayerRole fromValue(String? value) {
+    return PlayerRole.values.firstWhere(
+      (v) => v.value == value,
+      orElse: () => PlayerRole.player,
+    );
+  }
+}
+
+enum FinalResult {
+  pending('pending', 'Ожидает решения'),
+  correct('correct', 'Верно'),
+  wrong('wrong', 'Неверно'),
+  noAnswer('no_answer', 'Без ответа');
+
+  const FinalResult(this.value, this.label);
+  final String value;
+  final String label;
+
+  static FinalResult fromValue(String? value) {
+    return FinalResult.values.firstWhere(
+      (v) => v.value == value,
+      orElse: () => FinalResult.pending,
+    );
+  }
+}
+
 class QuestionDraft {
   QuestionDraft({
     required this.theme,
@@ -70,6 +124,9 @@ class QuestionDraft {
     required this.cost,
     required this.round,
     required this.type,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.aliases,
   });
 
   final String theme;
@@ -78,6 +135,9 @@ class QuestionDraft {
   final int cost;
   final int round;
   final QuestionType type;
+  final String mediaUrl;
+  final QuestionMediaType mediaType;
+  final List<String> aliases;
 }
 
 class RoomModel {
@@ -167,6 +227,9 @@ class ActiveQuestion {
     required this.answer,
     required this.cost,
     required this.type,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.aliases,
   });
 
   final String id;
@@ -175,6 +238,9 @@ class ActiveQuestion {
   final String answer;
   final int cost;
   final QuestionType type;
+  final String mediaUrl;
+  final QuestionMediaType mediaType;
+  final List<String> aliases;
 
   factory ActiveQuestion.fromMap(Map<String, dynamic> data) {
     return ActiveQuestion(
@@ -184,6 +250,9 @@ class ActiveQuestion {
       answer: data['answer'] as String? ?? '',
       cost: (data['cost'] as num?)?.toInt() ?? 100,
       type: QuestionType.fromValue(data['type'] as String?),
+      mediaUrl: data['mediaUrl'] as String? ?? '',
+      mediaType: QuestionMediaType.fromValue(data['mediaType'] as String?),
+      aliases: ((data['aliases'] as List?) ?? []).cast<String>(),
     );
   }
 
@@ -195,6 +264,9 @@ class ActiveQuestion {
       'answer': answer,
       'cost': cost,
       'type': type.value,
+      'mediaUrl': mediaUrl,
+      'mediaType': mediaType.value,
+      'aliases': aliases,
     };
   }
 }
@@ -209,6 +281,9 @@ class QuestionModel {
     required this.round,
     required this.used,
     required this.type,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.aliases,
   });
 
   final String id;
@@ -219,6 +294,9 @@ class QuestionModel {
   final int round;
   final bool used;
   final QuestionType type;
+  final String mediaUrl;
+  final QuestionMediaType mediaType;
+  final List<String> aliases;
 
   factory QuestionModel.fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
@@ -233,6 +311,9 @@ class QuestionModel {
       round: (data['round'] as num?)?.toInt() ?? 1,
       used: data['used'] as bool? ?? false,
       type: QuestionType.fromValue(data['type'] as String?),
+      mediaUrl: data['mediaUrl'] as String? ?? '',
+      mediaType: QuestionMediaType.fromValue(data['mediaType'] as String?),
+      aliases: ((data['aliases'] as List?) ?? []).cast<String>(),
     );
   }
 }
@@ -241,31 +322,43 @@ class PlayerModel {
   PlayerModel({
     required this.uid,
     required this.nickname,
+    required this.avatarUrl,
+    required this.role,
     required this.score,
     required this.connected,
     required this.correctAnswers,
     required this.wrongAnswers,
     required this.buzzCount,
+    required this.finalWager,
+    required this.finalResult,
   });
 
   final String uid;
   final String nickname;
+  final String avatarUrl;
+  final PlayerRole role;
   final int score;
   final bool connected;
   final int correctAnswers;
   final int wrongAnswers;
   final int buzzCount;
+  final int finalWager;
+  final FinalResult finalResult;
 
   factory PlayerModel.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     return PlayerModel(
       uid: doc.id,
       nickname: data['nickname'] as String? ?? doc.id,
+      avatarUrl: data['avatarUrl'] as String? ?? '',
+      role: PlayerRole.fromValue(data['role'] as String?),
       score: (data['score'] as num?)?.toInt() ?? 0,
       connected: data['connected'] as bool? ?? false,
       correctAnswers: (data['correctAnswers'] as num?)?.toInt() ?? 0,
       wrongAnswers: (data['wrongAnswers'] as num?)?.toInt() ?? 0,
       buzzCount: (data['buzzCount'] as num?)?.toInt() ?? 0,
+      finalWager: (data['finalWager'] as num?)?.toInt() ?? 0,
+      finalResult: FinalResult.fromValue(data['finalResult'] as String?),
     );
   }
 }
@@ -297,4 +390,34 @@ class GameEventModel {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
+}
+
+class PackSummary {
+  PackSummary({
+    required this.id,
+    required this.name,
+    required this.version,
+    required this.questionCount,
+  });
+
+  final String id;
+  final String name;
+  final int version;
+  final int questionCount;
+}
+
+class LeaderboardEntry {
+  LeaderboardEntry({
+    required this.uid,
+    required this.nickname,
+    required this.games,
+    required this.wins,
+    required this.totalScore,
+  });
+
+  final String uid;
+  final String nickname;
+  final int games;
+  final int wins;
+  final int totalScore;
 }

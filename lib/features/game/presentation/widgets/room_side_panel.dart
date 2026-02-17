@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../application/game_providers.dart';
 import '../../game_models.dart';
@@ -31,6 +32,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final myUid = FirebaseAuth.instance.currentUser!.uid;
     final actions = ref.read(gameActionsControllerProvider.notifier);
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final eventsAsync = ref.watch(eventsStreamProvider(widget.roomId));
@@ -75,7 +77,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${p.nickname} ${p.connected ? '' : '(offline)'}',
+                                        '${p.nickname} (${p.role.label}) ${p.connected ? '' : '(offline)'}',
                                       ),
                                       Text('Счёт: ${p.score}'),
                                       Text(
@@ -123,6 +125,61 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                                             100),
                                                   ),
                                               icon: const Icon(Icons.remove),
+                                            ),
+                                          ],
+                                        ),
+                                      if (widget.isHost && p.uid != myUid)
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            DropdownButton<PlayerRole>(
+                                              value: p.role == PlayerRole.host
+                                                  ? PlayerRole.player
+                                                  : p.role,
+                                              items: const [
+                                                DropdownMenuItem(
+                                                  value: PlayerRole.player,
+                                                  child: Text('Игрок'),
+                                                ),
+                                                DropdownMenuItem(
+                                                  value: PlayerRole.editor,
+                                                  child: Text('Редактор'),
+                                                ),
+                                                DropdownMenuItem(
+                                                  value: PlayerRole.spectator,
+                                                  child: Text('Зритель'),
+                                                ),
+                                              ],
+                                              onChanged: (v) {
+                                                if (v == null) return;
+                                                actions.setPlayerRole(
+                                                  roomId: widget.roomId,
+                                                  targetUid: p.uid,
+                                                  role: v,
+                                                );
+                                              },
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: () => actions.kickPlayer(
+                                                roomId: widget.roomId,
+                                                targetUid: p.uid,
+                                              ),
+                                              child: const Text('Кик'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: () => actions.banPlayer(
+                                                roomId: widget.roomId,
+                                                targetUid: p.uid,
+                                              ),
+                                              child: const Text('Бан'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: () => actions.unbanPlayer(
+                                                roomId: widget.roomId,
+                                                targetUid: p.uid,
+                                              ),
+                                              child: const Text('Разбан'),
                                             ),
                                           ],
                                         ),

@@ -53,7 +53,7 @@ class GameService {
         .doc(roomId)
         .collection('events')
         .orderBy('createdAt', descending: true)
-        .limit(100)
+        .limit(50)
         .snapshots();
   }
 
@@ -77,13 +77,20 @@ class GameService {
     if (roomId == null || roomId.isEmpty) {
       throw Exception('Сервер не вернул roomId');
     }
-    await _storeLastRoom(roomId);
+    await _storeLastRoom(roomId, role: PlayerRole.host);
     return roomId;
   }
 
-  Future<void> joinRoom(String roomId) async {
-    await _callCommand(command: 'join_room', roomId: roomId);
-    await _storeLastRoom(roomId);
+  Future<void> joinRoom(
+    String roomId, {
+    PlayerRole role = PlayerRole.player,
+  }) async {
+    await _callCommand(
+      command: 'join_room',
+      roomId: roomId,
+      data: {'role': role.value},
+    );
+    await _storeLastRoom(roomId, role: role);
   }
 
   Future<void> markDisconnected(String roomId) async {
@@ -104,8 +111,118 @@ class GameService {
         'cost': draft.cost,
         'round': draft.round,
         'type': draft.type.value,
+        'mediaUrl': draft.mediaUrl,
+        'mediaType': draft.mediaType.value,
+        'aliases': draft.aliases,
       },
     );
+  }
+
+  Future<void> setPlayerRole({
+    required String roomId,
+    required String targetUid,
+    required PlayerRole role,
+  }) async {
+    await _callCommand(
+      command: 'set_player_role',
+      roomId: roomId,
+      data: {'targetUid': targetUid, 'role': role.value},
+    );
+  }
+
+  Future<void> kickPlayer({
+    required String roomId,
+    required String targetUid,
+  }) async {
+    await _callCommand(
+      command: 'kick_player',
+      roomId: roomId,
+      data: {'targetUid': targetUid},
+    );
+  }
+
+  Future<void> banPlayer({
+    required String roomId,
+    required String targetUid,
+    String reason = '',
+  }) async {
+    await _callCommand(
+      command: 'ban_player',
+      roomId: roomId,
+      data: {'targetUid': targetUid, 'reason': reason},
+    );
+  }
+
+  Future<void> unbanPlayer({
+    required String roomId,
+    required String targetUid,
+  }) async {
+    await _callCommand(
+      command: 'unban_player',
+      roomId: roomId,
+      data: {'targetUid': targetUid},
+    );
+  }
+
+  Future<PackSummary> savePack({
+    required String roomId,
+    required String name,
+  }) async {
+    final data = await _callCommand(
+      command: 'save_pack',
+      roomId: roomId,
+      data: {'name': name},
+    );
+    return PackSummary(
+      id: data['packId'] as String? ?? '',
+      name: name,
+      version: (data['version'] as num?)?.toInt() ?? 1,
+      questionCount: 0,
+    );
+  }
+
+  Future<List<PackSummary>> listPacks() async {
+    final data = await _callCommand(command: 'list_packs');
+    final list = (data['packs'] as List?) ?? const [];
+    return list
+        .whereType<Map>()
+        .map(
+          (item) => PackSummary(
+            id: item['id'] as String? ?? '',
+            name: item['name'] as String? ?? 'Pack',
+            version: (item['version'] as num?)?.toInt() ?? 1,
+            questionCount: (item['questionCount'] as num?)?.toInt() ?? 0,
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> applyPack({
+    required String roomId,
+    required String packId,
+  }) async {
+    await _callCommand(
+      command: 'apply_pack',
+      roomId: roomId,
+      data: {'packId': packId},
+    );
+  }
+
+  Future<List<LeaderboardEntry>> getLeaderboard() async {
+    final data = await _callCommand(command: 'get_leaderboard');
+    final list = (data['leaderboard'] as List?) ?? const [];
+    return list
+        .whereType<Map>()
+        .map(
+          (item) => LeaderboardEntry(
+            uid: item['uid'] as String? ?? '',
+            nickname: item['nickname'] as String? ?? 'Игрок',
+            games: (item['games'] as num?)?.toInt() ?? 0,
+            wins: (item['wins'] as num?)?.toInt() ?? 0,
+            totalScore: (item['totalScore'] as num?)?.toInt() ?? 0,
+          ),
+        )
+        .toList();
   }
 
   Future<void> startGame(String roomId) async {
@@ -152,14 +269,15 @@ class GameService {
     );
   }
 
-  Future<void> submitFinalAnswer({
+  Future<void> setFinalPlayerResult({
     required String roomId,
-    required String answer,
+    required String targetUid,
+    required FinalResult result,
   }) async {
     await _callCommand(
-      command: 'submit_final_answer',
+      command: 'set_final_player_result',
       roomId: roomId,
-      data: {'answer': answer},
+      data: {'targetUid': targetUid, 'result': result.value},
     );
   }
 
@@ -205,12 +323,8 @@ class GameService {
     await _callCommand(command: 'buzz', roomId: roomId);
   }
 
-  Future<void> submitAnswer(String roomId, String answer) async {
-    await _callCommand(
-      command: 'submit_answer',
-      roomId: roomId,
-      data: {'answer': answer},
-    );
+  Future<void> submitAnswer(String roomId) async {
+    await _callCommand(command: 'submit_answer', roomId: roomId);
   }
 
   Future<void> judgeAnswer({
@@ -269,8 +383,9 @@ class GameService {
     }
   }
 
-  Future<void> _storeLastRoom(String roomId) async {
+  Future<void> _storeLastRoom(String roomId, {required PlayerRole role}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_room_id', roomId);
+    await prefs.setString('last_room_role', role.value);
   }
 }

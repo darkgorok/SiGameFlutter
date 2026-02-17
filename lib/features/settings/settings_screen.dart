@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -92,7 +93,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: LoadingPane()),
         error: (error, stack) => Center(child: Text('Ошибка: $error')),
       ),
     );

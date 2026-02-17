@@ -81,10 +81,6 @@ class GameActionUseCases {
     return _repository.applyPack(roomId: roomId, packId: packId);
   }
 
-  Future<List<LeaderboardEntry>> getLeaderboard() {
-    return _repository.getLeaderboard();
-  }
-
   Future<void> startGame(String roomId) => _repository.startGame(roomId);
   Future<void> advanceToRound2(String roomId) =>
       _repository.advanceToRound2(roomId);

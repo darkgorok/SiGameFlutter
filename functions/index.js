@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+﻿const admin = require('firebase-admin');
 const functions = require('firebase-functions/v1');
 
 admin.initializeApp();
@@ -160,34 +160,6 @@ async function revealFinalByHost(roomRef, roomId, hostUid) {
   });
 
   await batch.commit();
-  const finalPlayers = await roomRef.collection('players').get();
-  const sorted = [...finalPlayers.docs].sort(
-    (a, b) => Number(b.data().score || 0) - Number(a.data().score || 0),
-  );
-  const winnerUid = sorted.isEmpty ? null : sorted.first.id;
-  const leaderboardBatch = db.batch();
-  sorted.forEach((doc) => {
-    const score = Number(doc.data().score || 0);
-    const lbRef = db
-      .collection('tournaments')
-      .doc('default')
-      .collection('leaderboard')
-      .doc(doc.id);
-    leaderboardBatch.set(
-      lbRef,
-      {
-        uid: doc.id,
-        nickname: doc.data().nickname || doc.id,
-        avatarUrl: doc.data().avatarUrl || '',
-        games: FieldValue.increment(1),
-        totalScore: FieldValue.increment(score),
-        wins: FieldValue.increment(doc.id === winnerUid ? 1 : 0),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-  });
-  await leaderboardBatch.commit();
   await logEvent(roomId, hostUid, 'final_reveal', 'Финал вскрыт, игра завершена');
 }
 
@@ -395,26 +367,6 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     };
   }
 
-  if (command === 'get_leaderboard') {
-    const snaps = await db
-      .collection('tournaments')
-      .doc('default')
-      .collection('leaderboard')
-      .orderBy('wins', 'desc')
-      .orderBy('totalScore', 'desc')
-      .limit(20)
-      .get();
-    return {
-      leaderboard: snaps.docs.map((d) => ({
-        uid: d.id,
-        nickname: d.data().nickname || d.id,
-        games: Number(d.data().games || 0),
-        wins: Number(d.data().wins || 0),
-        totalScore: Number(d.data().totalScore || 0),
-      })),
-    };
-  }
-
   const roomId = String(data?.roomId || payload.roomId || '');
   if (!roomId) {
     throw new functions.https.HttpsError('invalid-argument', 'roomId required');
@@ -428,6 +380,10 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     const allowedRole = ALLOWED_JOIN_ROLES.has(requestedRole)
       ? requestedRole
       : PLAYER_ROLE.PLAYER;
+    const hasProfileNickname = typeof profile.nickname === 'string';
+    const hasProfileAvatarUrl = typeof profile.avatarUrl === 'string';
+    const profileNickname = String(profile.nickname || '').trim();
+    const profileAvatarUrl = String(profile.avatarUrl || '').trim();
 
     await db.runTransaction(async (tx) => {
       const roomSnap = await tx.get(roomRef);
@@ -448,8 +404,12 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       tx.set(
         playerRef,
         {
-          nickname: profile.nickname || existing.nickname || 'Игрок',
-          avatarUrl: profile.avatarUrl || existing.avatarUrl || '',
+          nickname: hasProfileNickname
+            ? (profileNickname || 'Игрок')
+            : (existing.nickname || 'Игрок'),
+          avatarUrl: hasProfileAvatarUrl
+            ? profileAvatarUrl
+            : (existing.avatarUrl || ''),
           role,
           connected: true,
           score: playerSnap.exists

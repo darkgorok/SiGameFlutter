@@ -95,26 +95,34 @@ class GameRepositoryImpl implements GameRepository {
     required String roomId,
     required String targetUid,
     required PlayerRole role,
-  }) => _service.setPlayerRole(roomId: roomId, targetUid: targetUid, role: role);
+  }) =>
+      _service.setPlayerRole(roomId: roomId, targetUid: targetUid, role: role);
 
   @override
-  Future<void> kickPlayer({required String roomId, required String targetUid}) =>
-      _service.kickPlayer(roomId: roomId, targetUid: targetUid);
+  Future<void> kickPlayer({
+    required String roomId,
+    required String targetUid,
+  }) => _service.kickPlayer(roomId: roomId, targetUid: targetUid);
 
   @override
   Future<void> banPlayer({
     required String roomId,
     required String targetUid,
     String reason = '',
-  }) => _service.banPlayer(roomId: roomId, targetUid: targetUid, reason: reason);
+  }) =>
+      _service.banPlayer(roomId: roomId, targetUid: targetUid, reason: reason);
 
   @override
-  Future<void> unbanPlayer({required String roomId, required String targetUid}) =>
-      _service.unbanPlayer(roomId: roomId, targetUid: targetUid);
+  Future<void> unbanPlayer({
+    required String roomId,
+    required String targetUid,
+  }) => _service.unbanPlayer(roomId: roomId, targetUid: targetUid);
 
   @override
-  Future<PackSummary> savePack({required String roomId, required String name}) =>
-      _service.savePack(roomId: roomId, name: name);
+  Future<PackSummary> savePack({
+    required String roomId,
+    required String name,
+  }) => _service.savePack(roomId: roomId, name: name);
 
   @override
   Future<List<PackSummary>> listPacks() => _service.listPacks();
@@ -122,9 +130,6 @@ class GameRepositoryImpl implements GameRepository {
   @override
   Future<void> applyPack({required String roomId, required String packId}) =>
       _service.applyPack(roomId: roomId, packId: packId);
-
-  @override
-  Future<List<LeaderboardEntry>> getLeaderboard() => _service.getLeaderboard();
 
   @override
   Future<void> startGame(String roomId) => _service.startGame(roomId);

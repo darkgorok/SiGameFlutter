@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import '../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/router.dart';
 import '../game/application/game_providers.dart';
 import '../game/game_models.dart';
+import '../packs/local_pack.dart';
+import '../packs/pack_file.dart';
 
 class RoomsScreen extends ConsumerStatefulWidget {
   const RoomsScreen({super.key});
@@ -14,6 +19,7 @@ class RoomsScreen extends ConsumerStatefulWidget {
 
 class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   final _nameCtrl = TextEditingController(text: 'Новая игра');
+  bool _creating = false;
 
   @override
   void dispose() {
@@ -25,43 +31,71 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   Widget build(BuildContext context) {
     final actions = ref.read(gameActionsControllerProvider.notifier);
     final roomsAsync = ref.watch(roomsStreamProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Комнаты')),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Название комнаты',
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _nameCtrl,
+                        enabled: !_creating,
+                        decoration: const InputDecoration(
+                          labelText: 'Название комнаты',
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _creating
+                          ? null
+                          : () => _createEmptyRoom(actions),
+                      child: _creating
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: LoadingInline(),
+                            )
+                          : const Text('Создать'),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    final roomId = await actions.createRoom(
-                      roomName: _nameCtrl.text.trim().isEmpty
-                          ? 'Комната'
-                          : _nameCtrl.text.trim(),
-                    );
-                    if (!context.mounted) return;
-                    Navigator.of(
-                      context,
-                    ).pushNamed(AppRoutes.roomEditor, arguments: roomId);
-                  },
-                  child: const Text('Создать'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _creating
+                            ? null
+                            : () => _createRoomFromPackFile(actions),
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Создать и загрузить пак из файла'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _creating
+                          ? null
+                          : () => Navigator.of(
+                              context,
+                            ).pushNamed(AppRoutes.packEditor),
+                      icon: const Icon(Icons.edit_note),
+                      label: const Text('Редактор пака'),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           Expanded(
             child: roomsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: LoadingPane()),
               error: (error, stackTrace) =>
                   Center(child: Text('Ошибка: $error')),
               data: (rooms) {
@@ -131,5 +165,63 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
         ],
       ),
     );
+  }
+
+  String get _roomName {
+    final name = _nameCtrl.text.trim();
+    return name.isEmpty ? 'Комната' : name;
+  }
+
+  Future<void> _createEmptyRoom(GameActionsController actions) async {
+    setState(() => _creating = true);
+    try {
+      final roomId = await actions.createRoom(roomName: _roomName);
+      if (!mounted) return;
+      Navigator.of(context).pushNamed(AppRoutes.roomEditor, arguments: roomId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка создания комнаты: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _creating = false);
+      }
+    }
+  }
+
+  Future<void> _createRoomFromPackFile(GameActionsController actions) async {
+    setState(() => _creating = true);
+    try {
+      final jsonText = await pickPackJsonText();
+      if (jsonText == null || jsonText.trim().isEmpty) {
+        return;
+      }
+      final raw = jsonDecode(jsonText);
+      final pack = LocalPackDocument.fromJson(raw);
+      if (pack.questions.isEmpty) {
+        throw Exception('В файле нет вопросов');
+      }
+
+      final roomId = await actions.createRoom(roomName: _roomName);
+      for (final question in pack.questions) {
+        await actions.addQuestion(roomId: roomId, draft: question.toDraft());
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Загружено вопросов: ${pack.questions.length}')),
+      );
+      Navigator.of(context).pushNamed(AppRoutes.roomEditor, arguments: roomId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки пака: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _creating = false);
+      }
+    }
   }
 }

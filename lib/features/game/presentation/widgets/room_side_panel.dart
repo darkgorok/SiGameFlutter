@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -60,8 +61,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                   child: TabBarView(
                     children: [
                       playersAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
+                        loading: () => const Center(child: LoadingPane()),
                         error: (error, stackTrace) =>
                             Center(child: Text('Ошибка: $error')),
                         data: (players) {
@@ -161,24 +161,27 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                               },
                                             ),
                                             OutlinedButton(
-                                              onPressed: () => actions.kickPlayer(
-                                                roomId: widget.roomId,
-                                                targetUid: p.uid,
-                                              ),
+                                              onPressed: () =>
+                                                  actions.kickPlayer(
+                                                    roomId: widget.roomId,
+                                                    targetUid: p.uid,
+                                                  ),
                                               child: const Text('Кик'),
                                             ),
                                             OutlinedButton(
-                                              onPressed: () => actions.banPlayer(
-                                                roomId: widget.roomId,
-                                                targetUid: p.uid,
-                                              ),
+                                              onPressed: () =>
+                                                  actions.banPlayer(
+                                                    roomId: widget.roomId,
+                                                    targetUid: p.uid,
+                                                  ),
                                               child: const Text('Бан'),
                                             ),
                                             OutlinedButton(
-                                              onPressed: () => actions.unbanPlayer(
-                                                roomId: widget.roomId,
-                                                targetUid: p.uid,
-                                              ),
+                                              onPressed: () =>
+                                                  actions.unbanPlayer(
+                                                    roomId: widget.roomId,
+                                                    targetUid: p.uid,
+                                                  ),
                                               child: const Text('Разбан'),
                                             ),
                                           ],
@@ -192,8 +195,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                         },
                       ),
                       eventsAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
+                        loading: () => const Center(child: LoadingPane()),
                         error: (error, stackTrace) =>
                             Center(child: Text('Ошибка: $error')),
                         data: (events) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/game_providers.dart';
@@ -214,7 +215,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             const SizedBox(height: 12),
             Expanded(
               child: questionsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: LoadingPane()),
                 error: (error, stackTrace) =>
                     Center(child: Text('Ошибка: $error')),
                 data: (questions) {

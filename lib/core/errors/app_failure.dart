@@ -1,4 +1,4 @@
-class AppFailure {
+﻿class AppFailure {
   AppFailure({required this.message, this.code});
 
   final String message;

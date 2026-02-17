@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/game_providers.dart';
@@ -149,7 +150,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
             ),
           if (isHost && room.phase == GamePhase.finalAnswering)
             playersAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: LoadingPane()),
               error: (error, stackTrace) => Text('Ошибка: $error'),
               data: (players) {
                 final eligible = players

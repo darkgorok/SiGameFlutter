@@ -41,10 +41,6 @@ final eventsStreamProvider =
       return ref.watch(gameReadUseCasesProvider).watchEvents(roomId);
     });
 
-final leaderboardProvider = FutureProvider<List<LeaderboardEntry>>((ref) {
-  return ref.watch(gameActionUseCasesProvider).getLeaderboard();
-});
-
 final gameActionsControllerProvider =
     AsyncNotifierProvider<GameActionsController, void>(
       GameActionsController.new,
@@ -124,9 +120,8 @@ class GameActionsController extends AsyncNotifier<void> {
   Future<void> kickPlayer({
     required String roomId,
     required String targetUid,
-  }) async => _runVoid(
-    () => _actions.kickPlayer(roomId: roomId, targetUid: targetUid),
-  );
+  }) async =>
+      _runVoid(() => _actions.kickPlayer(roomId: roomId, targetUid: targetUid));
 
   Future<void> banPlayer({
     required String roomId,
@@ -171,11 +166,8 @@ class GameActionsController extends AsyncNotifier<void> {
   Future<void> applyPack({
     required String roomId,
     required String packId,
-  }) async => _runVoid(
-    () => _actions.applyPack(roomId: roomId, packId: packId),
-  );
-
-  Future<List<LeaderboardEntry>> getLeaderboard() => _actions.getLeaderboard();
+  }) async =>
+      _runVoid(() => _actions.applyPack(roomId: roomId, packId: packId));
 
   Future<void> startGame(String roomId) async =>
       _runVoid(() => _actions.startGame(roomId));

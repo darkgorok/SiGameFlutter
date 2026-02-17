@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/game_providers.dart';
@@ -23,7 +24,7 @@ class QuestionBoard extends ConsumerWidget {
     final questionsAsync = ref.watch(questionsStreamProvider(roomId));
     final actions = ref.read(gameActionsControllerProvider.notifier);
     return questionsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: LoadingPane()),
       error: (error, stackTrace) => Center(child: Text('Ошибка: $error')),
       data: (allQuestions) {
         final questions = allQuestions
@@ -207,7 +208,7 @@ class CatTargetingPanel extends ConsumerWidget {
       return const Text('Ожидается выбор игрока для Кота в мешке');
     }
     return playersAsync.when(
-      loading: () => const CircularProgressIndicator(),
+      loading: () => const LoadingInline(),
       error: (error, stackTrace) => Text('Ошибка: $error'),
       data: (players) {
         final candidates = players
@@ -294,8 +295,11 @@ class HostJudgePanel extends ConsumerWidget {
       children: [
         Text('Кто ответил: ${room.currentAttemptUid ?? '-'}'),
         const Text('Проверка ответа выполняется ведущим голосом'),
-        if (room.activeQuestion != null && room.activeQuestion!.aliases.isNotEmpty)
-          Text('Допустимые варианты: ${room.activeQuestion!.aliases.join(', ')}'),
+        if (room.activeQuestion != null &&
+            room.activeQuestion!.aliases.isNotEmpty)
+          Text(
+            'Допустимые варианты: ${room.activeQuestion!.aliases.join(', ')}',
+          ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

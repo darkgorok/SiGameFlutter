@@ -32,14 +32,10 @@ abstract class GameRepository {
     required String targetUid,
     String reason,
   });
-  Future<void> unbanPlayer({
-    required String roomId,
-    required String targetUid,
-  });
+  Future<void> unbanPlayer({required String roomId, required String targetUid});
   Future<PackSummary> savePack({required String roomId, required String name});
   Future<List<PackSummary>> listPacks();
   Future<void> applyPack({required String roomId, required String packId});
-  Future<List<LeaderboardEntry>> getLeaderboard();
 
   Future<void> startGame(String roomId);
   Future<void> advanceToRound2(String roomId);

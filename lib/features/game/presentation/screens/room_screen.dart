@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
@@ -52,14 +53,14 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('Комната ${widget.roomId}')),
       body: roomAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: LoadingPane()),
         error: (error, stackTrace) => Center(child: Text('Ошибка: $error')),
         data: (room) {
           if (room == null) {
             return const Center(child: Text('Комната не найдена'));
           }
           return playersAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: LoadingPane()),
             error: (error, stackTrace) => Center(child: Text('Ошибка: $error')),
             data: (players) {
               PlayerModel? me;
@@ -78,18 +79,14 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                   _cleanView || myRole == PlayerRole.spectator;
               final actions = ref.read(gameActionsControllerProvider.notifier);
               final shortcuts = <ShortcutActivator, Intent>{
-                const SingleActivator(LogicalKeyboardKey.keyS): const _HostIntent(
-                  _HostAction.start,
-                ),
-                const SingleActivator(LogicalKeyboardKey.keyP): const _HostIntent(
-                  _HostAction.pauseToggle,
-                ),
-                const SingleActivator(LogicalKeyboardKey.keyF): const _HostIntent(
-                  _HostAction.finalRound,
-                ),
-                const SingleActivator(LogicalKeyboardKey.keyR): const _HostIntent(
-                  _HostAction.round2,
-                ),
+                const SingleActivator(LogicalKeyboardKey.keyS):
+                    const _HostIntent(_HostAction.start),
+                const SingleActivator(LogicalKeyboardKey.keyP):
+                    const _HostIntent(_HostAction.pauseToggle),
+                const SingleActivator(LogicalKeyboardKey.keyF):
+                    const _HostIntent(_HostAction.finalRound),
+                const SingleActivator(LogicalKeyboardKey.keyR):
+                    const _HostIntent(_HostAction.round2),
               };
               return Row(
                 children: [
@@ -134,19 +131,22 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                                   canPause: canPause,
                                   canEdit: canEdit,
                                   roomId: widget.roomId,
-                                  onOpenEditor: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          RoomEditorScreen(roomId: widget.roomId),
-                                    ),
-                                  ),
+                                  onOpenEditor: () =>
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => RoomEditorScreen(
+                                            roomId: widget.roomId,
+                                          ),
+                                        ),
+                                      ),
                                 ),
                               if (myRole == PlayerRole.spectator)
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton.icon(
-                                    onPressed: () =>
-                                        setState(() => _cleanView = !_cleanView),
+                                    onPressed: () => setState(
+                                      () => _cleanView = !_cleanView,
+                                    ),
                                     icon: const Icon(Icons.tv),
                                     label: Text(
                                       effectiveCleanView

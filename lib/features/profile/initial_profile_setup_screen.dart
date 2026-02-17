@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -80,7 +81,7 @@ class _InitialProfileSetupScreenState
                   ElevatedButton(
                     onPressed: _saving ? null : _saveProfile,
                     child: _saving
-                        ? const CircularProgressIndicator()
+                        ? const LoadingInline()
                         : const Text('Продолжить'),
                   ),
                 ],
@@ -118,9 +119,7 @@ class _InitialProfileSetupScreenState
     setState(() => _saving = true);
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final avatarUrl = _avatarBytes == null
-          ? ''
-          : 'data:image/jpeg;base64,${base64Encode(_avatarBytes!)}';
+      final avatarUrl = _buildAvatarDataUrl(_avatarBytes);
 
       await ref
           .read(gameRepositoryProvider)
@@ -132,15 +131,62 @@ class _InitialProfileSetupScreenState
 
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $error')));
+      debugPrint('profile save failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
     } finally {
       if (mounted) {
         setState(() => _saving = false);
       }
     }
+  }
+
+  String _buildAvatarDataUrl(Uint8List? bytes) {
+    if (bytes == null || bytes.isEmpty) {
+      return '';
+    }
+    // Copy into a plain Uint8List to avoid platform-specific typed data views.
+    final safeBytes = Uint8List.fromList(bytes);
+    final mime = _detectImageMime(safeBytes);
+    return 'data:$mime;base64,${base64Encode(safeBytes)}';
+  }
+
+  String _detectImageMime(Uint8List bytes) {
+    if (bytes.length >= 8 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47) {
+      return 'image/png';
+    }
+    if (bytes.length >= 3 &&
+        bytes[0] == 0xFF &&
+        bytes[1] == 0xD8 &&
+        bytes[2] == 0xFF) {
+      return 'image/jpeg';
+    }
+    if (bytes.length >= 6 &&
+        bytes[0] == 0x47 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x38) {
+      return 'image/gif';
+    }
+    if (bytes.length >= 12 &&
+        bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x45 &&
+        bytes[10] == 0x42 &&
+        bytes[11] == 0x50) {
+      return 'image/webp';
+    }
+    return 'application/octet-stream';
   }
 }

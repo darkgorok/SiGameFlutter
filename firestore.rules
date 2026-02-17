@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /rooms/{roomId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+
+      match /players/{uid} {
+        allow read: if signedIn();
+        allow create, update, delete: if false;
+      }
+
+      match /questions/{questionId} {
+        allow read: if signedIn();
+        allow create, update, delete: if false;
+      }
+
+      match /events/{eventId} {
+        allow read: if signedIn();
+        allow create, update, delete: if false;
+      }
+    }
+  }
+}

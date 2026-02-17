@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "sigame-8945c"
+  },
+  "targets": {
+    "sigame-8945c": {
+      "hosting": {
+        "finally": [
+          "finallyhemadethisgame"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

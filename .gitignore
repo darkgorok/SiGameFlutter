@@ -41,4 +41,10 @@ app.*.map.json
 /captures/
 
 # Generated plugin registrant
-lib/generated_plugin_registrant.dart
+
+# Local Firebase config
+/config/firebase.web.json
+
+# Firebase CLI
+.firebase/
+firebase-debug.log

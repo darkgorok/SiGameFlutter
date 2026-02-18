@@ -65,11 +65,13 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             Text(context.l10n.roomIdLabel(widget.roomId)),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('room_editor_theme_field'),
               controller: _themeCtrl,
               decoration: InputDecoration(labelText: context.l10n.themeLabel),
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('room_editor_question_field'),
               controller: _textCtrl,
               decoration: InputDecoration(
                 labelText: context.l10n.questionLabel,
@@ -78,6 +80,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('room_editor_answer_field'),
               controller: _answerCtrl,
               decoration: InputDecoration(
                 labelText: context.l10n.answerForHostLabel,
@@ -85,6 +88,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('room_editor_aliases_field'),
               controller: _aliasesCtrl,
               decoration: InputDecoration(
                 labelText: context.l10n.answerAliasesLabel,
@@ -92,6 +96,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('room_editor_media_url_field'),
               controller: _mediaUrlCtrl,
               decoration: InputDecoration(
                 labelText: context.l10n.mediaUrlOptionalLabel,
@@ -102,6 +107,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
               children: [
                 Expanded(
                   child: TextField(
+                    key: const ValueKey('room_editor_cost_field'),
                     controller: _costCtrl,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
@@ -111,6 +117,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<int>(
+                  key: const ValueKey('room_editor_round_dropdown'),
                   value: _round,
                   items: [
                     DropdownMenuItem(
@@ -126,6 +133,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<QuestionType>(
+                  key: const ValueKey('room_editor_type_dropdown'),
                   value: _type,
                   items: QuestionType.values
                       .map(
@@ -140,6 +148,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<QuestionMediaType>(
+                  key: const ValueKey('room_editor_media_type_dropdown'),
                   value: _mediaType,
                   items: QuestionMediaType.values
                       .map(
@@ -159,6 +168,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
+                    key: const ValueKey('room_editor_add_question_button'),
                     onPressed: () async {
                       final l10n = context.l10n;
                       await actions.addQuestion(
@@ -196,6 +206,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
+                    key: const ValueKey('room_editor_export_json_button'),
                     onPressed: () async {
                       final questions = await ref.read(
                         questionsStreamProvider(widget.roomId).future,
@@ -235,6 +246,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton(
+                    key: const ValueKey('room_editor_import_json_button'),
                     onPressed: () => _showImportDialog(context, actions),
                     child: Text(context.l10n.importJson),
                   ),
@@ -257,6 +269,9 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                     itemBuilder: (context, index) {
                       final q = questions[index];
                       return ListTile(
+                        key: ValueKey(
+                          'room_editor_question_tile_${q.id}_${q.type.value}_${q.mediaType.value}',
+                        ),
                         title: Text(
                           'R${q.round} | ${q.theme} | ${q.cost} | ${q.type.localizedLabel(context)}',
                         ),
@@ -285,6 +300,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
+                  key: const ValueKey('room_editor_save_pack_button'),
                   onPressed: () async {
                     final l10n = context.l10n;
                     final result = await actions.savePack(
@@ -307,6 +323,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
+                    key: const ValueKey('room_editor_packs_catalog_button'),
                     onPressed: () => _showPacksDialog(actions),
                     child: Text(context.l10n.packsCatalog),
                   ),
@@ -318,6 +335,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
+                    key: const ValueKey('room_editor_go_to_room_button'),
                     onPressed: () async {
                       await actions.joinRoom(
                         widget.roomId,

@@ -56,12 +56,14 @@ class RoomTopBar extends ConsumerWidget {
               runSpacing: 8,
               children: [
                 ElevatedButton(
+                  key: const ValueKey('room_start_game_button'),
                   onPressed: isHost
                       ? () => roomActions.startGame(roomId)
                       : null,
                   child: Text(context.l10n.start),
                 ),
                 ElevatedButton(
+                  key: const ValueKey('room_pause_resume_button'),
                   onPressed: room.status == GameStatus.paused
                       ? (canResume
                             ? () => roomActions.resumeGame(roomId)
@@ -74,18 +76,21 @@ class RoomTopBar extends ConsumerWidget {
                   ),
                 ),
                 ElevatedButton(
+                  key: const ValueKey('room_round2_button'),
                   onPressed: isHost
                       ? () => roomActions.advanceToRound2(roomId)
                       : null,
                   child: Text(context.l10n.round2),
                 ),
                 ElevatedButton(
+                  key: const ValueKey('room_start_final_round_button'),
                   onPressed: isHost
                       ? () => roomActions.startFinalRound(roomId)
                       : null,
                   child: Text(context.l10n.finalRoundButton),
                 ),
                 ElevatedButton(
+                  key: const ValueKey('room_open_editor_button'),
                   onPressed: canEdit ? onOpenEditor : null,
                   child: Text(context.l10n.packEditor),
                 ),

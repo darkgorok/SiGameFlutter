@@ -13,6 +13,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _installWebDebugNoiseFilter();
   await initializeFirebaseFromEnvironment();
+  connectFirebaseEmulatorsIfEnabled();
   runApp(const ProviderScope(child: SiGameApp()));
 }
 

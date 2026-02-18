@@ -169,6 +169,7 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
               children: [
                 Expanded(
                   child: TextField(
+                    key: const ValueKey('pack_editor_pack_name_field'),
                     controller: _packNameCtrl,
                     decoration: _fieldDecoration(
                       InputDecoration(
@@ -181,6 +182,7 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
+                  key: const ValueKey('pack_editor_import_button'),
                   tooltip: context.l10n.uploadFile,
                   onPressed: _busy ? null : _importFromFile,
                   icon: const Icon(Icons.upload_file),
@@ -193,6 +195,7 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
                         ? context.l10n.saveToFile
                         : '${context.l10n.saveToFile} ($issuesCount)';
                     return IconButton(
+                      key: const ValueKey('pack_editor_export_button'),
                       tooltip: tooltip,
                       onPressed: _busy ? null : _exportToFile,
                       color: issuesCount == 0 ? null : Colors.amber,
@@ -211,6 +214,7 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
                   },
                 ),
                 IconButton(
+                  key: const ValueKey('pack_editor_clear_button'),
                   tooltip: context.l10n.clear,
                   onPressed: _busy ? null : _clearPack,
                   icon: const Icon(Icons.delete_outline),
@@ -266,6 +270,9 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
                                   children: [
                                     IconButton(
                                       tooltip: 'Добавить раунд',
+                                      key: const ValueKey(
+                                        'pack_editor_add_round_button',
+                                      ),
                                       onPressed: _busy ? null : _addRound,
                                       icon: const Icon(Icons.add),
                                     ),
@@ -327,6 +334,9 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
                                       ),
                                       IconButton(
                                         tooltip: context.l10n.addQuestion,
+                                        key: const ValueKey(
+                                          'pack_editor_add_theme_button',
+                                        ),
                                         onPressed: _busy ? null : _addTheme,
                                         icon: const Icon(Icons.add),
                                       ),
@@ -408,6 +418,9 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
                               ),
                             ),
                             OutlinedButton.icon(
+                              key: const ValueKey(
+                                'pack_editor_add_question_button',
+                              ),
                               onPressed: _busy || selectedTheme == null
                                   ? null
                                   : _startCreateQuestion,
@@ -571,6 +584,10 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
       },
       onTypeChanged: (value) {
         setState(() => _type = value);
+        _syncQuestionFromEditor(pushHistory: false);
+      },
+      onMediaTypeChanged: (value) {
+        setState(() => _mediaType = value);
         _syncQuestionFromEditor(pushHistory: false);
       },
       onPickMedia: _pickMediaForEditor,
@@ -1870,6 +1887,7 @@ class _QuestionEditorPanel extends StatefulWidget {
     required this.onThemeChanged,
     required this.onRoundChanged,
     required this.onTypeChanged,
+    required this.onMediaTypeChanged,
     required this.onPickMedia,
     required this.onClearMedia,
     required this.onCancel,
@@ -1900,6 +1918,7 @@ class _QuestionEditorPanel extends StatefulWidget {
   final ValueChanged<String> onThemeChanged;
   final ValueChanged<int> onRoundChanged;
   final ValueChanged<QuestionType> onTypeChanged;
+  final ValueChanged<QuestionMediaType> onMediaTypeChanged;
   final Future<void> Function() onPickMedia;
   final VoidCallback onClearMedia;
   final VoidCallback onCancel;
@@ -2006,6 +2025,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    key: const ValueKey('pack_editor_theme_dropdown'),
                     initialValue: widget.editorThemeValue,
                     decoration: widget.fieldDecoration(
                       InputDecoration(
@@ -2034,6 +2054,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
                 SizedBox(
                   width: 85,
                   child: TextField(
+                    key: const ValueKey('pack_editor_cost_field'),
                     controller: widget.costCtrl,
                     keyboardType: TextInputType.number,
                     decoration: widget.fieldDecoration(
@@ -2047,6 +2068,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<int>(
+                  key: const ValueKey('pack_editor_round_dropdown'),
                   value: currentRound,
                   items: widget.roundOrder
                       .map(
@@ -2067,6 +2089,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('pack_editor_question_field'),
               controller: widget.textCtrl,
               maxLines: 2,
               decoration: widget.fieldDecoration(
@@ -2079,6 +2102,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('pack_editor_answer_field'),
               controller: widget.answerCtrl,
               decoration: widget.fieldDecoration(
                 InputDecoration(
@@ -2093,6 +2117,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<QuestionType>(
+                    key: const ValueKey('pack_editor_type_dropdown'),
                     initialValue: widget.type,
                     decoration: const InputDecoration(isDense: true),
                     items: QuestionType.values
@@ -2108,10 +2133,32 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
                         : (v) => widget.onTypeChanged(v ?? QuestionType.normal),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<QuestionMediaType>(
+                    key: const ValueKey('pack_editor_media_type_dropdown'),
+                    initialValue: widget.mediaType,
+                    decoration: const InputDecoration(isDense: true),
+                    items: QuestionMediaType.values
+                        .map(
+                          (t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(t.localizedLabel(context)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: widget.busy
+                        ? null
+                        : (v) => widget.onMediaTypeChanged(
+                            v ?? QuestionMediaType.none,
+                          ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('pack_editor_aliases_field'),
               controller: widget.aliasesCtrl,
               decoration: InputDecoration(
                 isDense: true,
@@ -2119,10 +2166,20 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
               ),
             ),
             const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey('pack_editor_media_url_field'),
+              controller: widget.mediaUrlCtrl,
+              decoration: InputDecoration(
+                isDense: true,
+                labelText: context.l10n.mediaUrlOptionalLabel,
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
+                    key: const ValueKey('pack_editor_upload_media_button'),
                     onPressed: widget.busy ? null : widget.onPickMedia,
                     icon: const Icon(Icons.upload_file),
                     label: const Text('Upload media'),
@@ -2130,6 +2187,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
+                  key: const ValueKey('pack_editor_clear_media_button'),
                   onPressed: widget.busy ? null : widget.onClearMedia,
                   child: const Text('Clear'),
                 ),
@@ -2144,6 +2202,7 @@ class _QuestionEditorPanelState extends State<_QuestionEditorPanel> {
             Row(
               children: [
                 OutlinedButton(
+                  key: const ValueKey('pack_editor_cancel_edit_button'),
                   onPressed: widget.busy ? null : widget.onCancel,
                   child: Text(context.l10n.cancel),
                 ),

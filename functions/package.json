@@ -9,7 +9,8 @@
     "lint": "echo 'no lint configured'",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "test:emulator": "node --test tests/*.emulator.test.js"
+    "test:emulator": "node --test tests/*.emulator.test.js",
+    "test:emulator:local": "node scripts/run-emulator-tests.js"
   },
   "dependencies": {
     "firebase-admin": "^13.6.1",

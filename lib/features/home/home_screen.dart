@@ -27,11 +27,13 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ElevatedButton(
+                  key: const ValueKey('home_create_room_button'),
                   onPressed: () => _showCreateRoomDialog(context, ref),
                   child: Text(context.l10n.homeCreateRoom),
                 ),
                 const SizedBox(height: 8),
                 ElevatedButton(
+                  key: const ValueKey('home_find_room_button'),
                   onPressed: () =>
                       Navigator.of(context).pushNamed(AppRoutes.rooms),
                   child: Text(context.l10n.homeFindRoom),
@@ -44,6 +46,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 ElevatedButton(
+                  key: const ValueKey('home_pack_editor_button'),
                   onPressed: () => _showPackEditorChoice(context),
                   child: Text(context.l10n.packEditor),
                 ),
@@ -66,12 +69,14 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ElevatedButton(
+                key: const ValueKey('home_pack_editor_create_button'),
                 onPressed: () =>
                     Navigator.of(dialogContext).pop(_PackEditorAction.create),
                 child: Text(context.l10n.packEditorCreate),
               ),
               const SizedBox(height: 8),
               ElevatedButton(
+                key: const ValueKey('home_pack_editor_edit_button'),
                 onPressed: () =>
                     Navigator.of(dialogContext).pop(_PackEditorAction.edit),
                 child: Text(context.l10n.packEditorEdit),
@@ -108,11 +113,19 @@ class HomeScreen extends ConsumerWidget {
 
     LocalPackDocument? selectedPack;
     bool busy = false;
+    var dialogClosed = false;
+
+    void safeSetDialogState(StateSetter setDialogState, VoidCallback fn) {
+      if (dialogClosed) {
+        return;
+      }
+      setDialogState(fn);
+    }
 
     Future<void> pickPack(StateSetter setDialogState) async {
       if (busy) return;
       final noQuestionsMessage = context.l10n.noQuestionsInFile;
-      setDialogState(() => busy = true);
+      safeSetDialogState(setDialogState, () => busy = true);
       try {
         final jsonText = await pickPackJsonText();
         if (jsonText == null || jsonText.trim().isEmpty) {
@@ -132,7 +145,7 @@ class HomeScreen extends ConsumerWidget {
           type: AppPopupType.error,
         );
       } finally {
-        setDialogState(() => busy = false);
+        safeSetDialogState(setDialogState, () => busy = false);
       }
     }
 
@@ -157,7 +170,7 @@ class HomeScreen extends ConsumerWidget {
         return;
       }
 
-      setDialogState(() => busy = true);
+      safeSetDialogState(setDialogState, () => busy = true);
       try {
         final roomId = await roomActions.createRoom(
           roomName: roomName,
@@ -168,6 +181,7 @@ class HomeScreen extends ConsumerWidget {
           drafts: selectedPack!.questions.map((q) => q.toDraft()).toList(),
         );
         if (!context.mounted) return;
+        dialogClosed = true;
         Navigator.of(context).pop();
         Navigator.of(
           context,
@@ -180,9 +194,7 @@ class HomeScreen extends ConsumerWidget {
           type: AppPopupType.error,
         );
       } finally {
-        if (context.mounted) {
-          setDialogState(() => busy = false);
-        }
+        safeSetDialogState(setDialogState, () => busy = false);
       }
     }
 
@@ -234,7 +246,10 @@ class HomeScreen extends ConsumerWidget {
                 TextButton(
                   onPressed: busy
                       ? null
-                      : () => Navigator.of(dialogContext).pop(),
+                      : () {
+                          dialogClosed = true;
+                          Navigator.of(dialogContext).pop();
+                        },
                   child: Text(context.l10n.cancel),
                 ),
                 ElevatedButton(
@@ -247,6 +262,7 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
+    dialogClosed = true;
 
     roomNameCtrl.dispose();
     passwordCtrl.dispose();

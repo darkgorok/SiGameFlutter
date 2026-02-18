@@ -63,6 +63,9 @@ class QuestionBoard extends ConsumerWidget {
                         runSpacing: 8,
                         children: cells.map((q) {
                           return ElevatedButton(
+                            key: ValueKey(
+                              'room_pick_question_${q.id}_${q.cost}_${q.type.value}_${q.mediaType.value}',
+                            ),
                             onPressed:
                                 GameUiPermissions.canPickQuestion(room) &&
                                     !q.used
@@ -145,6 +148,7 @@ class ActiveQuestionPanel extends ConsumerWidget {
             const SizedBox(height: 6),
             if (room.phase == GamePhase.questionReveal && isHost)
               ElevatedButton(
+                key: const ValueKey('room_open_buzzing_button'),
                 onPressed: () => actions.openBuzzing(roomId),
                 child: Text(context.l10n.openAnswerButton),
               ),
@@ -171,12 +175,16 @@ class ActiveQuestionPanel extends ConsumerWidget {
                           spacing: 8,
                           children: [
                             ElevatedButton(
+                              key: const ValueKey(
+                                'room_submit_voice_answer_button',
+                              ),
                               onPressed: room.currentAttemptUid == uid
                                   ? () => actions.submitAnswer(roomId)
                                   : null,
                               child: Text(context.l10n.answeredByVoice),
                             ),
                             ElevatedButton(
+                              key: const ValueKey('room_buzz_button'),
                               onPressed:
                                   GameUiPermissions.canBuzz(room, uid) &&
                                       myRole != PlayerRole.spectator
@@ -273,6 +281,7 @@ class _NumericAnswerPanelState extends ConsumerState<NumericAnswerPanel> {
           children: [
             Expanded(
               child: TextField(
+                key: const ValueKey('room_numeric_answer_field'),
                 controller: _ctrl,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -285,6 +294,7 @@ class _NumericAnswerPanelState extends ConsumerState<NumericAnswerPanel> {
             ),
             const SizedBox(width: 8),
             ElevatedButton(
+              key: const ValueKey('room_submit_numeric_answer_button'),
               onPressed: !canAnswer
                   ? null
                   : () async {
@@ -338,6 +348,7 @@ class CatTargetingPanel extends ConsumerWidget {
           children: candidates
               .map(
                 (p) => OutlinedButton(
+                  key: ValueKey('room_cat_target_${p.uid}'),
                   onPressed: () => actions.selectCatTarget(roomId, p.uid),
                   child: Text(context.l10n.transferTo(p.nickname)),
                 ),
@@ -379,6 +390,7 @@ class _WagerPanelState extends ConsumerState<WagerPanel> {
       children: [
         Expanded(
           child: TextField(
+            key: const ValueKey('room_wager_field'),
             controller: _wagerCtrl,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(labelText: context.l10n.wagerLabel),
@@ -386,6 +398,7 @@ class _WagerPanelState extends ConsumerState<WagerPanel> {
         ),
         const SizedBox(width: 8),
         ElevatedButton(
+          key: const ValueKey('room_confirm_wager_button'),
           onPressed: canSetWager
               ? () => actions.setWagerAndOpen(
                   roomId: widget.roomId,
@@ -425,11 +438,13 @@ class HostJudgePanel extends ConsumerWidget {
           spacing: 8,
           children: [
             ElevatedButton(
+              key: const ValueKey('room_judge_correct_button'),
               onPressed: () =>
                   actions.judgeAnswer(roomId: roomId, correct: true),
               child: Text(context.l10n.finalResultCorrect),
             ),
             ElevatedButton(
+              key: const ValueKey('room_judge_wrong_button'),
               onPressed: () =>
                   actions.judgeAnswer(roomId: roomId, correct: false),
               child: Text(context.l10n.finalResultWrong),

@@ -4,7 +4,8 @@ const functions = require('firebase-functions/v1');
 admin.initializeApp();
 
 const db = admin.firestore();
-const { FieldValue } = admin.firestore;
+const FieldValue = admin.firestore.FieldValue ||
+  admin.firestore().constructor.FieldValue;
 
 const GAME_STATUS = {
   LOBBY: 'lobby',

@@ -386,33 +386,48 @@ class GameService {
     if (drafts.isEmpty) {
       return;
     }
-    for (var i = 0; i < drafts.length; i += 500) {
-      final chunk = drafts.sublist(
-        i,
-        (i + 500) > drafts.length ? drafts.length : i + 500,
-      );
-      await _callCommand(
-        command: GameCommand.addQuestionsBulk,
-        roomId: roomId,
-        data: {
-          'questions': chunk
-              .map(
-                (draft) => {
-                  'theme': draft.theme,
-                  'text': draft.text,
-                  'answer': draft.answer,
-                  'cost': draft.cost,
-                  'round': draft.round,
-                  'type': draft.type.value,
-                  'mediaUrl': draft.mediaUrl,
-                  'mediaType': draft.mediaType.value,
-                  'aliases': draft.aliases,
-                },
-              )
-              .toList(),
-        },
-      );
+    try {
+      for (var i = 0; i < drafts.length; i += 500) {
+        final chunk = drafts.sublist(
+          i,
+          (i + 500) > drafts.length ? drafts.length : i + 500,
+        );
+        await _callCommand(
+          command: GameCommand.addQuestionsBulk,
+          roomId: roomId,
+          data: {
+            'questions': chunk
+                .map(
+                  (draft) => {
+                    'theme': draft.theme,
+                    'text': draft.text,
+                    'answer': draft.answer,
+                    'cost': draft.cost,
+                    'round': draft.round,
+                    'type': draft.type.value,
+                    'mediaUrl': draft.mediaUrl,
+                    'mediaType': draft.mediaType.value,
+                    'aliases': draft.aliases,
+                  },
+                )
+                .toList(),
+          },
+        );
+      }
+    } on AppException catch (error) {
+      if (!_isMissingBulkCommand(error)) {
+        rethrow;
+      }
+      for (final draft in drafts) {
+        await addQuestion(roomId: roomId, draft: draft);
+      }
     }
+  }
+
+  bool _isMissingBulkCommand(AppException error) {
+    final message = error.message.toLowerCase();
+    return error.code == 'invalid-argument' &&
+        message.contains('unknown command: add_questions_bulk');
   }
 
   Future<void> judgeAnswer({

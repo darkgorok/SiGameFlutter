@@ -65,18 +65,21 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                   children: [
                     Text(context.l10n.finalQuestionSetup),
                     TextField(
+                      key: const ValueKey('final_theme_field'),
                       controller: _themeCtrl,
                       decoration: InputDecoration(
                         labelText: context.l10n.finalThemeLabel,
                       ),
                     ),
                     TextField(
+                      key: const ValueKey('final_question_field'),
                       controller: _questionCtrl,
                       decoration: InputDecoration(
                         labelText: context.l10n.finalQuestionFieldLabel,
                       ),
                     ),
                     TextField(
+                      key: const ValueKey('final_answer_field'),
                       controller: _answerCtrl,
                       decoration: InputDecoration(
                         labelText: context.l10n.finalControlAnswerLabel,
@@ -87,6 +90,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                       spacing: 8,
                       children: [
                         ElevatedButton(
+                          key: const ValueKey('final_save_question_button'),
                           onPressed: () => actions.setFinalQuestion(
                             roomId: widget.roomId,
                             theme: _themeCtrl.text.trim(),
@@ -96,16 +100,19 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                           child: Text(context.l10n.saveQuestion),
                         ),
                         ElevatedButton(
+                          key: const ValueKey('final_open_wagers_button'),
                           onPressed: () =>
                               actions.openFinalWagers(widget.roomId),
                           child: Text(context.l10n.openWagers),
                         ),
                         ElevatedButton(
+                          key: const ValueKey('final_open_answers_button'),
                           onPressed: () =>
                               actions.openFinalAnswers(widget.roomId),
                           child: Text(context.l10n.startVoiceAnswers),
                         ),
                         ElevatedButton(
+                          key: const ValueKey('final_reveal_button'),
                           onPressed: () => actions.revealFinal(widget.roomId),
                           child: Text(context.l10n.revealFinal),
                         ),
@@ -127,6 +134,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
               children: [
                 Expanded(
                   child: TextField(
+                    key: const ValueKey('final_wager_field'),
                     controller: _wagerCtrl,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
@@ -136,6 +144,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
+                  key: const ValueKey('final_place_wager_button'),
                   onPressed: () => actions.submitFinalWager(
                     roomId: widget.roomId,
                     wager: int.tryParse(_wagerCtrl.text.trim()) ?? 0,
@@ -182,6 +191,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                   spacing: 8,
                                   children: [
                                     OutlinedButton(
+                                      key: ValueKey(
+                                        'final_result_correct_${p.uid}',
+                                      ),
                                       onPressed: () =>
                                           actions.setFinalPlayerResult(
                                             roomId: widget.roomId,
@@ -193,6 +205,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                       ),
                                     ),
                                     OutlinedButton(
+                                      key: ValueKey(
+                                        'final_result_wrong_${p.uid}',
+                                      ),
                                       onPressed: () =>
                                           actions.setFinalPlayerResult(
                                             roomId: widget.roomId,
@@ -204,6 +219,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                       ),
                                     ),
                                     OutlinedButton(
+                                      key: ValueKey(
+                                        'final_result_no_answer_${p.uid}',
+                                      ),
                                       onPressed: () =>
                                           actions.setFinalPlayerResult(
                                             roomId: widget.roomId,

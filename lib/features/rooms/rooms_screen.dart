@@ -37,6 +37,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
             children: [
               ...roomsState.rooms.map((room) {
                 return Card(
+                  key: ValueKey('rooms_room_card_${room.id}'),
                   margin: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 6,
@@ -59,6 +60,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                       spacing: 8,
                       children: [
                         ElevatedButton(
+                          key: ValueKey('rooms_join_player_${room.id}'),
                           onPressed: () => _joinAs(
                             actions: actions,
                             room: room,
@@ -67,6 +69,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                           child: Text(context.l10n.player),
                         ),
                         OutlinedButton(
+                          key: ValueKey('rooms_join_spectator_${room.id}'),
                           onPressed: () => _joinAs(
                             actions: actions,
                             room: room,

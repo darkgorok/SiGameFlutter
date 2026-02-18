@@ -66,7 +66,10 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${context.l10n.roomDefaultName} ${widget.roomId}'),
+        title: Text(
+          '${context.l10n.roomDefaultName} ${widget.roomId}',
+          key: const ValueKey('room_screen_title'),
+        ),
       ),
       body: roomAsync.when(
         loading: () => const Center(child: LoadingPane()),

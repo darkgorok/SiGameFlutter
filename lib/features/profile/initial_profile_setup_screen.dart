@@ -9,6 +9,7 @@ import '../../app/router.dart';
 import '../../core/avatar_data_url.dart';
 import '../../core/l10n.dart';
 import '../../core/providers.dart';
+import '../../core/runtime_flags.dart';
 import '../../core/widgets/app_popup.dart';
 import '../../core/widgets/language_switcher.dart';
 import 'avatar_picker.dart';
@@ -123,6 +124,7 @@ class _InitialProfileSetupScreenState
                           ),
                           const SizedBox(height: 10),
                           TextField(
+                            key: const ValueKey('profile_nickname_field'),
                             controller: _nicknameCtrl,
                             enabled: !_saving,
                             textAlign: TextAlign.center,
@@ -134,6 +136,7 @@ class _InitialProfileSetupScreenState
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton(
+                            key: const ValueKey('profile_continue_button'),
                             onPressed: _saving ? null : _saveProfile,
                             child: _saving
                                 ? const LoadingInline()
@@ -195,9 +198,11 @@ class _InitialProfileSetupScreenState
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final avatarUrl = buildAvatarDataUrl(_avatarBytes);
 
-      await ref
-          .read(gameRepositoryProvider)
-          .upsertProfile(uid: uid, nickname: nickname, avatarUrl: avatarUrl);
+      if (!e2eBypassProfileUpsert) {
+        await ref
+            .read(gameRepositoryProvider)
+            .upsertProfile(uid: uid, nickname: nickname, avatarUrl: avatarUrl);
+      }
 
       final prefs = await ref.read(sharedPreferencesProvider.future);
       await prefs.setString('profile_nickname', nickname);

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../../core/runtime_flags.dart';
 
 final bootstrapProvider = FutureProvider<void>((ref) async {
   final auth = FirebaseAuth.instance;
@@ -13,7 +14,7 @@ final bootstrapProvider = FutureProvider<void>((ref) async {
   final nickname = prefs.getString('profile_nickname')?.trim() ?? '';
   final avatarUrl = prefs.getString('profile_avatar') ?? '';
 
-  if (nickname.isNotEmpty) {
+  if (nickname.isNotEmpty && !e2eBypassProfileUpsert) {
     try {
       await ref
           .read(gameRepositoryProvider)

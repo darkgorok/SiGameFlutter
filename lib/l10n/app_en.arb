@@ -1,0 +1,290 @@
+﻿{
+  "@@locale": "en",
+  "appTitle": "SiGame Online",
+  "routeNotFound": "Route not found",
+  "initializationError": "Initialization error: {error}",
+  "@initializationError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "firebaseNotConfiguredMessage": "Firebase is not configured.\n\nCreate local file config/firebase.web.json (example: config/firebase.web.example.json), then run:\n\nflutter run -d chrome --dart-define-from-file=config/firebase.web.json\n\nAfter that rooms, sync, reconnect and online game will be available.",
+  "homeCreateRoom": "Create room",
+  "homeFindRoom": "Find room",
+  "homeSettings": "Settings",
+  "settingsTitle": "Settings",
+  "settingsNameLabel": "Name",
+  "settingsVolume": "Volume: {percent}%",
+  "@settingsVolume": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "Save",
+  "changeAvatarError": "Could not pick avatar: {error}",
+  "@changeAvatarError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "nameCannotBeEmpty": "Name cannot be empty",
+  "settingsSaved": "Settings saved",
+  "saveError": "Save error: {error}",
+  "@saveError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "profileSetupTitle": "Create profile",
+  "nicknameRequiredHint": "Nickname (required)",
+  "continueButton": "Continue",
+  "nicknameRequired": "Nickname is required",
+  "profileSaved": "Profile saved",
+  "profileTitle": "Profile",
+  "profileNickLabel": "Nickname",
+  "profileAvatarUrlLabel": "Avatar URL",
+  "roomsTitle": "Rooms",
+  "newGameDefault": "New game",
+  "roomNameLabel": "Room name",
+  "roomNameRequired": "Room name is required",
+  "createRoomDialogTitle": "Create room",
+  "roomPasswordLabel": "Password (optional)",
+  "packFileRequired": "Pack file is required",
+  "enterRoomPasswordTitle": "Enter password for: {roomName}",
+  "@enterRoomPasswordTitle": {
+    "placeholders": {
+      "roomName": {}
+    }
+  },
+  "create": "Create",
+  "createAndUploadPack": "Create and upload pack from file",
+  "packEditor": "Pack editor",
+  "packEditorCreate": "Create pack",
+  "packEditorEdit": "Edit pack",
+  "packSelectFilePrompt": "Select a pack file",
+  "packSelectFile": "Select file",
+  "packInvalidFile": "Invalid pack file",
+  "errorWithDetails": "Error: {error}",
+  "@errorWithDetails": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noRoomsYet": "No rooms yet",
+  "roomStatusPhase": "Status: {status} | Phase: {phase}",
+  "@roomStatusPhase": {
+    "placeholders": {
+      "status": {},
+      "phase": {}
+    }
+  },
+  "player": "Player",
+  "spectator": "Spectator",
+  "roomDefaultName": "Room",
+  "createRoomError": "Room creation failed: {error}",
+  "@createRoomError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noQuestionsInFile": "No questions in file",
+  "questionsLoaded": "Questions loaded: {count}",
+  "@questionsLoaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "packUploadError": "Pack upload error: {error}",
+  "@packUploadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "appFailurePermissionDenied": "Not enough permissions for this action.",
+  "appFailureNetworkError": "Network problem. Check your connection and try again.",
+  "gameStatusLobby": "Lobby",
+  "gameStatusInGame": "In game",
+  "gameStatusPaused": "Paused",
+  "gameStatusFinalRound": "Final",
+  "gameStatusCompleted": "Completed",
+  "gamePhaseLobby": "Lobby",
+  "gamePhaseBoardSelect": "Question selection",
+  "gamePhaseQuestionReveal": "Question reveal",
+  "gamePhaseCatTargeting": "Cat in a bag: choose player",
+  "gamePhaseWagerBidding": "Auction: wager",
+  "gamePhaseAnswering": "Answering",
+  "gamePhaseAnswerReview": "Host decision",
+  "gamePhaseFinalSetup": "Final: setup",
+  "gamePhaseFinalWagering": "Final: wagers",
+  "gamePhaseFinalAnswering": "Final: voice answers",
+  "gamePhaseFinalReveal": "Final: reveal",
+  "gamePhaseGameOver": "Game over",
+  "questionTypeNormal": "Normal",
+  "questionTypeCat": "Cat in a bag",
+  "questionTypeWager": "Auction question",
+  "questionTypeClosestNumber": "Closest number",
+  "questionMediaNone": "No media",
+  "questionMediaImage": "Image",
+  "questionMediaAudio": "Audio",
+  "questionMediaVideo": "Video",
+  "roleHost": "Host",
+  "rolePlayer": "Player",
+  "roleSpectator": "Spectator",
+  "roleEditor": "Editor",
+  "finalResultPending": "Pending",
+  "finalResultCorrect": "Correct",
+  "finalResultWrong": "Wrong",
+  "finalResultNoAnswer": "No answer",
+  "themeFallback": "Theme",
+  "noThemeFallback": "No theme",
+  "serverNoRoomId": "Server did not return roomId",
+  "playerFallbackName": "Player",
+  "serverErrorDefault": "Server error",
+  "showPanels": "Show panels",
+  "broadcastMode": "Broadcast mode",
+  "roundLabel": "Round",
+  "questionChooser": "Question chooser",
+  "start": "Start",
+  "unpause": "Resume",
+  "pause": "Pause",
+  "round2": "Round 2",
+  "finalRoundButton": "Final",
+  "timerSeconds": "Timer: {seconds} sec",
+  "noQuestionsCurrentRound": "No questions for current round",
+  "activeQuestionHeader": "Active: {theme} | {type} | {cost}",
+  "mediaLabel": "Media",
+  "openAnswerButton": "Open answer button",
+  "answeringNow": "Answering",
+  "answeredByVoice": "Answered by voice",
+  "buzzButton": "Buzz",
+  "closestNumberHint": "Enter a number. The closest answer wins.",
+  "numericAnswerFieldLabel": "Your answer (number)",
+  "submitNumericAnswer": "Submit number",
+  "waitingHostDecision": "Waiting for host decision on voice answer",
+  "chooseNextQuestion": "Choose the next question on the board",
+  "waitingCatSelection": "Waiting for player selection for Cat in a bag",
+  "transferTo": "Transfer to: {name}",
+  "wagerLabel": "Wager",
+  "confirmWager": "Confirm wager",
+  "whoAnswered": "Who answered: {uid}",
+  "hostVoiceCheck": "The host validates voice answers",
+  "acceptedAnswers": "Accepted answers: {aliases}",
+  "finalRoundLabel": "Final round",
+  "eligiblePlayers": "Eligible players: {count}",
+  "finalQuestionSetup": "Final question setup",
+  "finalThemeLabel": "Final theme",
+  "finalQuestionFieldLabel": "Final question",
+  "finalControlAnswerLabel": "Control answer (for host)",
+  "saveQuestion": "Save question",
+  "openWagers": "Open wagers",
+  "startVoiceAnswers": "Start voice answers",
+  "revealFinal": "Reveal final",
+  "themeLabel": "Theme",
+  "questionLabel": "Question",
+  "yourFinalWager": "Your final wager",
+  "placeWager": "Place wager",
+  "discordVoiceInfo": "Answers are given by voice in Discord. The host marks each result.",
+  "playerWagerLine": "{name} | wager: {wager}",
+  "decisionLabel": "Decision",
+  "playersAndStats": "Players and stats",
+  "tabPlayers": "Players",
+  "tabGameLog": "Game log",
+  "offline": "offline",
+  "scoreLabel": "Score",
+  "statsLine": "Stats: +{correct} / -{wrong} | Buzz: {buzz}",
+  "manualAdjustment": "Manual adjustment",
+  "kick": "Kick",
+  "ban": "Ban",
+  "unban": "Unban",
+  "noEventsYet": "No events yet",
+  "myPackDefault": "My pack",
+  "roomEditorTitle": "Themes and questions",
+  "roomIdLabel": "Room: {id}",
+  "answerForHostLabel": "Answer (for host)",
+  "answerAliasesLabel": "Answer aliases (comma-separated)",
+  "mediaUrlOptionalLabel": "Media URL (optional)",
+  "costLabel": "Cost",
+  "round1": "Round 1",
+  "addQuestion": "Add question",
+  "questionAdded": "Question added",
+  "exportPackageTitle": "Package export",
+  "exportJson": "Export JSON",
+  "importJson": "Import JSON",
+  "noQuestions": "No questions",
+  "packNameLabel": "Pack name",
+  "packSavedVersion": "Pack saved v{version}",
+  "savePack": "Save pack",
+  "packsCatalog": "Packs catalog",
+  "goToRoom": "Go to room",
+  "packsEmpty": "No packs",
+  "questionsCount": "Questions: {count}",
+  "apply": "Apply",
+  "close": "Close",
+  "importPackJsonTitle": "Import JSON pack",
+  "pasteJsonQuestionsHint": "Paste JSON with questions",
+  "cancel": "Cancel",
+  "importError": "Import error: {error}",
+  "importAction": "Import",
+  "uploadFile": "Upload file",
+  "saveToFile": "Save to file",
+  "clear": "Clear",
+  "saveChanges": "Save changes",
+  "bulkThemeOptionalLabel": "Bulk theme (optional)",
+  "bulkRoundAny": "Round: -",
+  "onlySelected": "Only selected",
+  "packQuestionsSelectedReorder": "Questions: {questions} | Selected: {selected}. Drag rows to reorder.",
+  "@packQuestionsSelectedReorder": {
+    "placeholders": {
+      "questions": {
+        "type": "int"
+      },
+      "selected": {
+        "type": "int"
+      }
+    }
+  },
+  "packHasNoQuestionsYet": "No questions in pack yet",
+  "themeQuestionAnswerRequired": "Theme, question and answer are required",
+  "specifyThemeOrRoundForBulkUpdate": "Specify theme and/or round for bulk update",
+  "noSelectedQuestions": "No selected questions",
+  "updatedQuestions": "Updated questions: {count}",
+  "@updatedQuestions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "packIsEmpty": "Pack is empty",
+  "newPackDefault": "New pack",
+  "fileSaved": "File saved",
+  "saveCanceled": "Save canceled",
+  "languageLabel": "Language",
+  "languageEnglish": "English",
+  "languageRussian": "Russian",
+  "languageUkrainian": "Ukrainian",
+  "change": "Change",
+  "answerHotkeyLabel": "Answer key",
+  "answerHotkeyCurrent": "Current key: {key}",
+  "@answerHotkeyCurrent": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "answerHotkeyPressAny": "Press any key...",
+  "keySpace": "Space",
+  "popupErrorTitle": "Error",
+  "popupSuccessTitle": "Done",
+  "popupInfoTitle": "Message",
+  "popupOk": "OK"
+}
+
+
+
+
+
+

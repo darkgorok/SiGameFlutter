@@ -52,10 +52,13 @@ class GameActionsController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<String> createRoom({required String roomName}) async {
+  Future<String> createRoom({
+    required String roomName,
+    String? password,
+  }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(
-      () => _actions.createRoom(roomName: roomName),
+      () => _actions.createRoom(roomName: roomName, password: password),
     );
     if (result.hasError) {
       state = AsyncError(
@@ -71,8 +74,11 @@ class GameActionsController extends AsyncNotifier<void> {
   Future<void> joinRoom(
     String roomId, {
     PlayerRole role = PlayerRole.player,
+    String? password,
   }) async {
-    state = await AsyncValue.guard(() => _actions.joinRoom(roomId, role: role));
+    state = await AsyncValue.guard(
+      () => _actions.joinRoom(roomId, role: role, password: password),
+    );
     if (state.hasError) throw state.error!;
   }
 
@@ -231,6 +237,12 @@ class GameActionsController extends AsyncNotifier<void> {
       _runVoid(() => _actions.buzz(roomId));
   Future<void> submitAnswer(String roomId) async =>
       _runVoid(() => _actions.submitAnswer(roomId));
+  Future<void> submitNumericAnswer({
+    required String roomId,
+    required num value,
+  }) async => _runVoid(
+    () => _actions.submitNumericAnswer(roomId: roomId, value: value),
+  );
   Future<void> judgeAnswer({
     required String roomId,
     required bool correct,

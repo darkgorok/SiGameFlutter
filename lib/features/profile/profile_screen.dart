@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/presentation/loading_screen.dart';
+import '../../core/l10n.dart';
 import '../../core/providers.dart';
+import '../../core/widgets/app_popup.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -30,7 +32,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(
-      appBar: AppBar(title: const Text('Профиль')),
+      appBar: AppBar(title: Text(context.l10n.profileTitle)),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('profiles')
@@ -55,19 +57,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     TextField(
                       controller: _nickCtrl,
-                      decoration: const InputDecoration(labelText: 'Ник'),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.profileNickLabel,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _avatarCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Ссылка на аватар',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.profileAvatarUrlLabel,
                       ),
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () async {
-                        final messenger = ScaffoldMessenger.of(context);
                         await ref
                             .read(gameRepositoryProvider)
                             .upsertProfile(
@@ -85,11 +88,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           _avatarCtrl.text.trim(),
                         );
                         if (!mounted) return;
-                        messenger.showSnackBar(
-                          const SnackBar(content: Text('Профиль сохранён')),
+                        showAppPopup(
+                          context,
+                          message: context.l10n.profileSaved,
+                          type: AppPopupType.success,
                         );
                       },
-                      child: const Text('Сохранить'),
+                      child: Text(context.l10n.save),
                     ),
                   ],
                 ),

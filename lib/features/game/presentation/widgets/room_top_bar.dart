@@ -1,7 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/l10n.dart';
 import '../../application/game_providers.dart';
+import '../../game_localizations.dart';
 import '../../game_models.dart';
 import 'countdown_label.dart';
 
@@ -36,10 +38,10 @@ class RoomTopBar extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${room.name} | ${room.status.label} | ${room.phase.label} | Раунд ${room.currentRound}',
+              '${room.name} | ${room.status.localizedLabel(context)} | ${room.phase.localizedLabel(context)} | ${context.l10n.roundLabel} ${room.currentRound}',
             ),
             if (room.chooserUid != null)
-              Text('Выбор вопроса: ${room.chooserUid}'),
+              Text('${context.l10n.questionChooser}: ${room.chooserUid}'),
             if (room.timerDeadlineAtMs != null)
               CountdownLabel(
                 deadlineMs: room.timerDeadlineAtMs!,
@@ -54,31 +56,33 @@ class RoomTopBar extends ConsumerWidget {
               children: [
                 ElevatedButton(
                   onPressed: isHost ? () => actions.startGame(roomId) : null,
-                  child: const Text('Старт'),
+                  child: Text(context.l10n.start),
                 ),
                 ElevatedButton(
                   onPressed: room.status == GameStatus.paused
                       ? (canResume ? () => actions.resumeGame(roomId) : null)
                       : (canPause ? () => actions.pauseGame(roomId) : null),
                   child: Text(
-                    room.status == GameStatus.paused ? 'Снять паузу' : 'Пауза',
+                    room.status == GameStatus.paused
+                        ? context.l10n.unpause
+                        : context.l10n.pause,
                   ),
                 ),
                 ElevatedButton(
                   onPressed: isHost
                       ? () => actions.advanceToRound2(roomId)
                       : null,
-                  child: const Text('Раунд 2'),
+                  child: Text(context.l10n.round2),
                 ),
                 ElevatedButton(
                   onPressed: isHost
                       ? () => actions.startFinalRound(roomId)
                       : null,
-                  child: const Text('Финал'),
+                  child: Text(context.l10n.finalRoundButton),
                 ),
                 ElevatedButton(
                   onPressed: canEdit ? onOpenEditor : null,
-                  child: const Text('Редактор'),
+                  child: Text(context.l10n.packEditor),
                 ),
               ],
             ),

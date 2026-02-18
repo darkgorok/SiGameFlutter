@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,14 +68,21 @@ class GameService {
     );
   }
 
-  Future<String> createRoom({required String roomName}) async {
+  Future<String> createRoom({
+    required String roomName,
+    String? password,
+  }) async {
+    final normalizedPassword = password?.trim() ?? '';
     final data = await _callCommand(
       command: 'create_room',
-      data: {'roomName': roomName},
+      data: {
+        'roomName': roomName,
+        if (normalizedPassword.isNotEmpty) 'password': normalizedPassword,
+      },
     );
     final roomId = data['roomId'] as String?;
     if (roomId == null || roomId.isEmpty) {
-      throw Exception('Сервер не вернул roomId');
+      throw Exception('Server did not return roomId');
     }
     await _storeLastRoom(roomId, role: PlayerRole.host);
     return roomId;
@@ -84,11 +91,16 @@ class GameService {
   Future<void> joinRoom(
     String roomId, {
     PlayerRole role = PlayerRole.player,
+    String? password,
   }) async {
+    final normalizedPassword = password?.trim() ?? '';
     await _callCommand(
       command: 'join_room',
       roomId: roomId,
-      data: {'role': role.value},
+      data: {
+        'role': role.value,
+        if (normalizedPassword.isNotEmpty) 'password': normalizedPassword,
+      },
     );
     await _storeLastRoom(roomId, role: role);
   }
@@ -216,7 +228,7 @@ class GameService {
         .map(
           (item) => LeaderboardEntry(
             uid: item['uid'] as String? ?? '',
-            nickname: item['nickname'] as String? ?? 'Игрок',
+            nickname: item['nickname'] as String? ?? 'Player',
             games: (item['games'] as num?)?.toInt() ?? 0,
             wins: (item['wins'] as num?)?.toInt() ?? 0,
             totalScore: (item['totalScore'] as num?)?.toInt() ?? 0,
@@ -327,6 +339,17 @@ class GameService {
     await _callCommand(command: 'submit_answer', roomId: roomId);
   }
 
+  Future<void> submitNumericAnswer({
+    required String roomId,
+    required num value,
+  }) async {
+    await _callCommand(
+      command: 'submit_numeric_answer',
+      roomId: roomId,
+      data: {'value': value},
+    );
+  }
+
   Future<void> judgeAnswer({
     required String roomId,
     required bool correct,
@@ -379,7 +402,7 @@ class GameService {
       }
       return <String, dynamic>{};
     } on FirebaseFunctionsException catch (e) {
-      throw Exception(e.message ?? 'Ошибка сервера');
+      throw Exception(e.message ?? 'Server error');
     }
   }
 

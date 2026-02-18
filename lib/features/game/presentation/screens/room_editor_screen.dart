@@ -1,10 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/presentation/loading_screen.dart';
+import '../../../../core/l10n.dart';
+import '../../../../core/widgets/app_popup.dart';
 import '../../application/game_providers.dart';
+import '../../game_localizations.dart';
 import '../../game_models.dart';
 import 'room_screen.dart';
 
@@ -24,10 +27,18 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
   final _aliasesCtrl = TextEditingController();
   final _costCtrl = TextEditingController(text: '100');
   final _mediaUrlCtrl = TextEditingController();
-  final _packNameCtrl = TextEditingController(text: 'Мой пак');
+  final _packNameCtrl = TextEditingController();
   int _round = 1;
   QuestionType _type = QuestionType.normal;
   QuestionMediaType _mediaType = QuestionMediaType.none;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_packNameCtrl.text.isEmpty) {
+      _packNameCtrl.text = context.l10n.myPackDefault;
+    }
+  }
 
   @override
   void dispose() {
@@ -46,42 +57,44 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
     final actions = ref.read(gameActionsControllerProvider.notifier);
     final questionsAsync = ref.watch(questionsStreamProvider(widget.roomId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Темы и вопросы')),
+      appBar: AppBar(title: Text(context.l10n.roomEditorTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('Комната: ${widget.roomId}'),
+            Text(context.l10n.roomIdLabel(widget.roomId)),
             const SizedBox(height: 8),
             TextField(
               controller: _themeCtrl,
-              decoration: const InputDecoration(labelText: 'Тема'),
+              decoration: InputDecoration(labelText: context.l10n.themeLabel),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _textCtrl,
-              decoration: const InputDecoration(labelText: 'Вопрос'),
+              decoration: InputDecoration(
+                labelText: context.l10n.questionLabel,
+              ),
               maxLines: 2,
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _answerCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Ответ (для ведущего)',
+              decoration: InputDecoration(
+                labelText: context.l10n.answerForHostLabel,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _aliasesCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Варианты ответа (через запятую)',
+              decoration: InputDecoration(
+                labelText: context.l10n.answerAliasesLabel,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _mediaUrlCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Ссылка на медиа (опционально)',
+              decoration: InputDecoration(
+                labelText: context.l10n.mediaUrlOptionalLabel,
               ),
             ),
             const SizedBox(height: 8),
@@ -91,15 +104,23 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                   child: TextField(
                     controller: _costCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Стоимость'),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.costLabel,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<int>(
                   value: _round,
-                  items: const [
-                    DropdownMenuItem(value: 1, child: Text('Раунд 1')),
-                    DropdownMenuItem(value: 2, child: Text('Раунд 2')),
+                  items: [
+                    DropdownMenuItem(
+                      value: 1,
+                      child: Text(context.l10n.round1),
+                    ),
+                    DropdownMenuItem(
+                      value: 2,
+                      child: Text(context.l10n.round2),
+                    ),
                   ],
                   onChanged: (v) => setState(() => _round = v ?? 1),
                 ),
@@ -108,7 +129,10 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                   value: _type,
                   items: QuestionType.values
                       .map(
-                        (t) => DropdownMenuItem(value: t, child: Text(t.label)),
+                        (t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t.localizedLabel(context)),
+                        ),
                       )
                       .toList(),
                   onChanged: (v) =>
@@ -119,7 +143,10 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                   value: _mediaType,
                   items: QuestionMediaType.values
                       .map(
-                        (t) => DropdownMenuItem(value: t, child: Text(t.label)),
+                        (t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t.localizedLabel(context)),
+                        ),
                       )
                       .toList(),
                   onChanged: (v) =>
@@ -133,7 +160,6 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
                       await actions.addQuestion(
                         roomId: widget.roomId,
                         draft: QuestionDraft(
@@ -153,11 +179,13 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       _aliasesCtrl.clear();
                       _mediaUrlCtrl.clear();
                       if (!mounted) return;
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Вопрос добавлен')),
+                      showAppPopup(
+                        context,
+                        message: context.l10n.questionAdded,
+                        type: AppPopupType.success,
                       );
                     },
-                    child: const Text('Добавить вопрос'),
+                    child: Text(context.l10n.addQuestion),
                   ),
                 ),
               ],
@@ -195,19 +223,19 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       if (!context.mounted) return;
                       _showJsonDialog(
                         context,
-                        title: 'Экспорт пакета',
+                        title: context.l10n.exportPackageTitle,
                         jsonText: pretty,
                         readOnly: true,
                       );
                     },
-                    child: const Text('Экспорт JSON'),
+                    child: Text(context.l10n.exportJson),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _showImportDialog(context, actions),
-                    child: const Text('Импорт JSON'),
+                    child: Text(context.l10n.importJson),
                   ),
                 ),
               ],
@@ -216,11 +244,12 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             Expanded(
               child: questionsAsync.when(
                 loading: () => const Center(child: LoadingPane()),
-                error: (error, stackTrace) =>
-                    Center(child: Text('Ошибка: $error')),
+                error: (error, stackTrace) => Center(
+                  child: Text(context.l10n.errorWithDetails(error.toString())),
+                ),
                 data: (questions) {
                   if (questions.isEmpty) {
-                    return const Center(child: Text('Вопросов нет'));
+                    return Center(child: Text(context.l10n.noQuestions));
                   }
                   return ListView.builder(
                     itemCount: questions.length,
@@ -228,10 +257,10 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       final q = questions[index];
                       return ListTile(
                         title: Text(
-                          'R${q.round} | ${q.theme} | ${q.cost} | ${q.type.label}',
+                          'R${q.round} | ${q.theme} | ${q.cost} | ${q.type.localizedLabel(context)}',
                         ),
                         subtitle: Text(
-                          '${q.text}\n${q.mediaUrl.isEmpty ? '' : 'Медиа: ${q.mediaType.label}'}',
+                          '${q.text}\n${q.mediaUrl.isEmpty ? '' : '${context.l10n.mediaLabel}: ${q.mediaType.localizedLabel(context)}'}',
                         ),
                         isThreeLine: q.mediaUrl.isNotEmpty,
                         trailing: q.used
@@ -248,27 +277,26 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 Expanded(
                   child: TextField(
                     controller: _packNameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Название пака',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.packNameLabel,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
                     final result = await actions.savePack(
                       roomId: widget.roomId,
                       name: _packNameCtrl.text.trim(),
                     );
                     if (!mounted) return;
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text('Пак сохранен v${result.version}'),
-                      ),
+                    showAppPopup(
+                      context,
+                      message: context.l10n.packSavedVersion(result.version),
+                      type: AppPopupType.success,
                     );
                   },
-                  child: const Text('Сохранить пак'),
+                  child: Text(context.l10n.savePack),
                 ),
               ],
             ),
@@ -278,7 +306,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _showPacksDialog(context, actions),
-                    child: const Text('Каталог паков'),
+                    child: Text(context.l10n.packsCatalog),
                   ),
                 ),
               ],
@@ -303,7 +331,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                         ),
                       );
                     },
-                    child: const Text('Перейти в комнату'),
+                    child: Text(context.l10n.goToRoom),
                   ),
                 ),
               ],
@@ -333,11 +361,11 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Каталог паков'),
+          title: Text(context.l10n.packsCatalog),
           content: SizedBox(
             width: 700,
             child: packs.isEmpty
-                ? const Text('Паков нет')
+                ? Text(context.l10n.packsEmpty)
                 : ListView.builder(
                     shrinkWrap: true,
                     itemCount: packs.length,
@@ -345,7 +373,9 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       final p = packs[index];
                       return ListTile(
                         title: Text('${p.name} v${p.version}'),
-                        subtitle: Text('Вопросов: ${p.questionCount}'),
+                        subtitle: Text(
+                          context.l10n.questionsCount(p.questionCount),
+                        ),
                         trailing: ElevatedButton(
                           onPressed: () async {
                             await actions.applyPack(
@@ -355,7 +385,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                             if (!context.mounted) return;
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Применить'),
+                          child: Text(context.l10n.apply),
                         ),
                       );
                     },
@@ -364,7 +394,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Закрыть'),
+              child: Text(context.l10n.close),
             ),
           ],
         );
@@ -381,22 +411,22 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Импорт пакета JSON'),
+          title: Text(context.l10n.importPackJsonTitle),
           content: SizedBox(
             width: 700,
             child: TextField(
               controller: ctrl,
               maxLines: 20,
-              decoration: const InputDecoration(
-                hintText: 'Вставьте JSON с questions',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: context.l10n.pasteJsonQuestionsHint,
+                border: const OutlineInputBorder(),
               ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
+              child: Text(context.l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -435,12 +465,14 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                   Navigator.of(context).pop();
                 } catch (e) {
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(
+                  showAppPopup(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('Ошибка импорта: $e')));
+                    message: context.l10n.importError(e.toString()),
+                    type: AppPopupType.error,
+                  );
                 }
               },
-              child: const Text('Импортировать'),
+              child: Text(context.l10n.importAction),
             ),
           ],
         );
@@ -472,7 +504,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Закрыть'),
+              child: Text(context.l10n.close),
             ),
           ],
         );

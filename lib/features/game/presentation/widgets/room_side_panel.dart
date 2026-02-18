@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
-import '../../../../app/presentation/loading_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/presentation/loading_screen.dart';
+import '../../../../core/l10n.dart';
 import '../../application/game_providers.dart';
+import '../../game_localizations.dart';
 import '../../game_models.dart';
 
 class RoomSidePanel extends ConsumerStatefulWidget {
@@ -42,7 +44,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
         Padding(
           padding: const EdgeInsets.all(8),
           child: Text(
-            'Игроки и статистика',
+            context.l10n.playersAndStats,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
@@ -51,10 +53,10 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
             length: 2,
             child: Column(
               children: [
-                const TabBar(
+                TabBar(
                   tabs: [
-                    Tab(text: 'Игроки'),
-                    Tab(text: 'Лог партии'),
+                    Tab(text: context.l10n.tabPlayers),
+                    Tab(text: context.l10n.tabGameLog),
                   ],
                 ),
                 Expanded(
@@ -62,8 +64,11 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                     children: [
                       playersAsync.when(
                         loading: () => const Center(child: LoadingPane()),
-                        error: (error, stackTrace) =>
-                            Center(child: Text('Ошибка: $error')),
+                        error: (error, stackTrace) => Center(
+                          child: Text(
+                            context.l10n.errorWithDetails(error.toString()),
+                          ),
+                        ),
                         data: (players) {
                           return ListView.builder(
                             itemCount: players.length,
@@ -77,11 +82,17 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${p.nickname} (${p.role.label}) ${p.connected ? '' : '(offline)'}',
+                                        '${p.nickname} (${p.role.localizedLabel(context)}) ${p.connected ? '' : '(${context.l10n.offline})'}',
                                       ),
-                                      Text('Счёт: ${p.score}'),
                                       Text(
-                                        'Стат: +${p.correctAnswers} / -${p.wrongAnswers} | Кнопка: ${p.buzzCount}',
+                                        '${context.l10n.scoreLabel}: ${p.score}',
+                                      ),
+                                      Text(
+                                        context.l10n.statsLine(
+                                          p.correctAnswers,
+                                          p.wrongAnswers,
+                                          p.buzzCount,
+                                        ),
                                       ),
                                       if (widget.isHost)
                                         Row(
@@ -91,11 +102,11 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                                 controller: _deltaCtrl,
                                                 keyboardType:
                                                     TextInputType.number,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText:
-                                                          'Ручная корректировка',
-                                                    ),
+                                                decoration: InputDecoration(
+                                                  labelText: context
+                                                      .l10n
+                                                      .manualAdjustment,
+                                                ),
                                               ),
                                             ),
                                             IconButton(
@@ -137,18 +148,24 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                               value: p.role == PlayerRole.host
                                                   ? PlayerRole.player
                                                   : p.role,
-                                              items: const [
+                                              items: [
                                                 DropdownMenuItem(
                                                   value: PlayerRole.player,
-                                                  child: Text('Игрок'),
+                                                  child: Text(
+                                                    context.l10n.rolePlayer,
+                                                  ),
                                                 ),
                                                 DropdownMenuItem(
                                                   value: PlayerRole.editor,
-                                                  child: Text('Редактор'),
+                                                  child: Text(
+                                                    context.l10n.roleEditor,
+                                                  ),
                                                 ),
                                                 DropdownMenuItem(
                                                   value: PlayerRole.spectator,
-                                                  child: Text('Зритель'),
+                                                  child: Text(
+                                                    context.l10n.roleSpectator,
+                                                  ),
                                                 ),
                                               ],
                                               onChanged: (v) {
@@ -166,7 +183,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                   ),
-                                              child: const Text('Кик'),
+                                              child: Text(context.l10n.kick),
                                             ),
                                             OutlinedButton(
                                               onPressed: () =>
@@ -174,7 +191,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                   ),
-                                              child: const Text('Бан'),
+                                              child: Text(context.l10n.ban),
                                             ),
                                             OutlinedButton(
                                               onPressed: () =>
@@ -182,7 +199,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                   ),
-                                              child: const Text('Разбан'),
+                                              child: Text(context.l10n.unban),
                                             ),
                                           ],
                                         ),
@@ -196,12 +213,15 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                       ),
                       eventsAsync.when(
                         loading: () => const Center(child: LoadingPane()),
-                        error: (error, stackTrace) =>
-                            Center(child: Text('Ошибка: $error')),
+                        error: (error, stackTrace) => Center(
+                          child: Text(
+                            context.l10n.errorWithDetails(error.toString()),
+                          ),
+                        ),
                         data: (events) {
                           if (events.isEmpty) {
-                            return const Center(
-                              child: Text('Событий пока нет'),
+                            return Center(
+                              child: Text(context.l10n.noEventsYet),
                             );
                           }
                           return ListView.builder(

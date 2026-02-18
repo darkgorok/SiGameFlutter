@@ -3,12 +3,15 @@ import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/presentation/loading_screen.dart';
 import '../../app/router.dart';
+import '../../core/l10n.dart';
 import '../../core/providers.dart';
+import '../../core/widgets/app_popup.dart';
+import '../../core/widgets/language_switcher.dart';
 import 'avatar_picker.dart';
 
 class InitialProfileSetupScreen extends ConsumerStatefulWidget {
@@ -24,6 +27,7 @@ class _InitialProfileSetupScreenState
   final _nicknameCtrl = TextEditingController();
   Uint8List? _avatarBytes;
   bool _saving = false;
+  bool _avatarHovered = false;
 
   @override
   void dispose() {
@@ -34,60 +38,120 @@ class _InitialProfileSetupScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Card(
-            margin: const EdgeInsets.all(24),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Создание профиля',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: CircleAvatar(
-                      radius: 44,
-                      backgroundImage: _avatarBytes == null
-                          ? null
-                          : MemoryImage(_avatarBytes!),
-                      child: _avatarBytes == null
-                          ? const Icon(Icons.person, size: 40)
-                          : null,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Card(
+                    margin: const EdgeInsets.all(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            context.l10n.profileSetupTitle,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: MouseRegion(
+                              cursor: _saving
+                                  ? SystemMouseCursors.basic
+                                  : SystemMouseCursors.click,
+                              onEnter: (_) => _setAvatarHovered(true),
+                              onExit: (_) => _setAvatarHovered(false),
+                              child: GestureDetector(
+                                onTap: _saving ? null : _pickAvatar,
+                                child: AnimatedScale(
+                                  duration: const Duration(milliseconds: 120),
+                                  curve: Curves.easeOut,
+                                  scale: (_avatarHovered && !_saving)
+                                      ? 1.1
+                                      : 1.0,
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 120),
+                                    width: 176,
+                                    height: 176,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: _avatarHovered
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.primary
+                                            : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: DecoratedBox(
+                                        decoration: const BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              Color(0xFF1F2226),
+                                              Color(0xFF2A2E33),
+                                            ],
+                                          ),
+                                        ),
+                                        child: _avatarBytes == null
+                                            ? const Center(
+                                                child: Icon(
+                                                  Icons.person,
+                                                  size: 72,
+                                                ),
+                                              )
+                                            : Image(
+                                                image: MemoryImage(
+                                                  _avatarBytes!,
+                                                ),
+                                                fit: BoxFit.cover,
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _nicknameCtrl,
+                            enabled: !_saving,
+                            textAlign: TextAlign.center,
+                            maxLength: 24,
+                            decoration: InputDecoration(
+                              hintText: context.l10n.nicknameRequiredHint,
+                              counterText: '',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: _saving ? null : _saveProfile,
+                            child: _saving
+                                ? const LoadingInline()
+                                : Text(context.l10n.continueButton),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: _saving ? null : _pickAvatar,
-                    icon: const Icon(Icons.upload),
-                    label: const Text('Загрузить аватарку'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _nicknameCtrl,
-                    enabled: !_saving,
-                    maxLength: 24,
-                    decoration: const InputDecoration(
-                      labelText: 'Никнейм (обязательно)',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _saving ? null : _saveProfile,
-                    child: _saving
-                        ? const LoadingInline()
-                        : const Text('Продолжить'),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Center(child: LanguageSwitcher(enabled: !_saving)),
+            ),
+          ],
         ),
       ),
     );
@@ -101,18 +165,29 @@ class _InitialProfileSetupScreenState
       setState(() => _avatarBytes = bytes);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось выбрать аватарку: $error')),
+      showAppPopup(
+        context,
+        message: context.l10n.changeAvatarError(error.toString()),
+        type: AppPopupType.error,
       );
     }
+  }
+
+  void _setAvatarHovered(bool value) {
+    if (!mounted || _saving || _avatarHovered == value) {
+      return;
+    }
+    setState(() => _avatarHovered = value);
   }
 
   Future<void> _saveProfile() async {
     final nickname = _nicknameCtrl.text.trim();
     if (nickname.isEmpty) {
-      ScaffoldMessenger.of(
+      showAppPopup(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Нужно указать никнейм')));
+        message: context.l10n.nicknameRequired,
+        type: AppPopupType.error,
+      );
       return;
     }
 
@@ -133,9 +208,11 @@ class _InitialProfileSetupScreenState
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
     } catch (error, stackTrace) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppPopup(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $error')));
+        message: context.l10n.saveError(error.toString()),
+        type: AppPopupType.error,
+      );
       debugPrint('profile save failed: $error');
       debugPrintStack(stackTrace: stackTrace);
     } finally {
@@ -149,7 +226,6 @@ class _InitialProfileSetupScreenState
     if (bytes == null || bytes.isEmpty) {
       return '';
     }
-    // Copy into a plain Uint8List to avoid platform-specific typed data views.
     final safeBytes = Uint8List.fromList(bytes);
     final mime = _detectImageMime(safeBytes);
     return 'data:$mime;base64,${base64Encode(safeBytes)}';

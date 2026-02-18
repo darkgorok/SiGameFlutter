@@ -83,10 +83,10 @@ class LocalPackDocument {
           .whereType<Map>()
           .map((e) => LocalPackQuestion.fromJson(Map<String, dynamic>.from(e)))
           .toList();
-      return LocalPackDocument(name: 'Пак', questions: questions);
+      return LocalPackDocument(name: 'Pack', questions: questions);
     }
     if (raw is! Map) {
-      throw FormatException('Неверный JSON пака');
+      throw FormatException('Invalid pack JSON');
     }
     final map = Map<String, dynamic>.from(raw);
     final list = (map['questions'] as List?) ?? const [];
@@ -96,7 +96,7 @@ class LocalPackDocument {
         .toList();
     return LocalPackDocument(
       name: (map['name'] ?? '').toString().trim().isEmpty
-          ? 'Пак'
+          ? 'Pack'
           : map['name'].toString().trim(),
       questions: questions,
     );

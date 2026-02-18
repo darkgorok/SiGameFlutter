@@ -1,11 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../../../app/presentation/loading_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/presentation/loading_screen.dart';
+import '../../../../core/hotkeys.dart';
+import '../../../../core/l10n.dart';
 import '../../application/game_providers.dart';
 import '../../game_models.dart';
+import '../controllers/game_ui_permissions.dart';
 import '../widgets/final_round_board.dart';
 import '../widgets/question_flow_widgets.dart';
 import '../widgets/room_side_panel.dart';
@@ -28,10 +31,12 @@ class RoomScreen extends ConsumerStatefulWidget {
 
 class _RoomScreenState extends ConsumerState<RoomScreen> {
   bool _cleanView = false;
+  LogicalKeyboardKey _answerHotkey = AppHotkeys.defaultAnswerHotkey;
 
   @override
   void initState() {
     super.initState();
+    _loadAnswerHotkey();
     ref
         .read(gameActionsControllerProvider.notifier)
         .joinRoom(widget.roomId, role: widget.role);
@@ -45,23 +50,43 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
     super.dispose();
   }
 
+  Future<void> _loadAnswerHotkey() async {
+    final key = await AppHotkeys.loadAnswerHotkey();
+    if (!mounted) return;
+    setState(() => _answerHotkey = key);
+  }
+
+  bool _isTextInputFocused() {
+    final focusedContext = FocusManager.instance.primaryFocus?.context;
+    if (focusedContext == null) {
+      return false;
+    }
+    return focusedContext.widget is EditableText;
+  }
+
   @override
   Widget build(BuildContext context) {
     final roomAsync = ref.watch(roomStreamProvider(widget.roomId));
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final uid = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(
-      appBar: AppBar(title: Text('Комната ${widget.roomId}')),
+      appBar: AppBar(
+        title: Text('${context.l10n.roomDefaultName} ${widget.roomId}'),
+      ),
       body: roomAsync.when(
         loading: () => const Center(child: LoadingPane()),
-        error: (error, stackTrace) => Center(child: Text('Ошибка: $error')),
+        error: (error, stackTrace) => Center(
+          child: Text(context.l10n.errorWithDetails(error.toString())),
+        ),
         data: (room) {
           if (room == null) {
-            return const Center(child: Text('Комната не найдена'));
+            return Center(child: Text(context.l10n.routeNotFound));
           }
           return playersAsync.when(
             loading: () => const Center(child: LoadingPane()),
-            error: (error, stackTrace) => Center(child: Text('Ошибка: $error')),
+            error: (error, stackTrace) => Center(
+              child: Text(context.l10n.errorWithDetails(error.toString())),
+            ),
             data: (players) {
               PlayerModel? me;
               for (final p in players) {
@@ -87,6 +112,7 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                     const _HostIntent(_HostAction.finalRound),
                 const SingleActivator(LogicalKeyboardKey.keyR):
                     const _HostIntent(_HostAction.round2),
+                SingleActivator(_answerHotkey): const _BuzzIntent(),
               };
               return Row(
                 children: [
@@ -114,6 +140,22 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                                   actions.startFinalRound(widget.roomId);
                                 case _HostAction.round2:
                                   actions.advanceToRound2(widget.roomId);
+                              }
+                              return null;
+                            },
+                          ),
+                          _BuzzIntent: CallbackAction<_BuzzIntent>(
+                            onInvoke: (_) {
+                              if (_isTextInputFocused()) {
+                                return null;
+                              }
+                              if (room.activeQuestion?.type ==
+                                  QuestionType.closestNumber) {
+                                return null;
+                              }
+                              if (GameUiPermissions.canBuzz(room, uid) &&
+                                  myRole != PlayerRole.spectator) {
+                                actions.buzz(widget.roomId);
                               }
                               return null;
                             },
@@ -150,8 +192,8 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                                     icon: const Icon(Icons.tv),
                                     label: Text(
                                       effectiveCleanView
-                                          ? 'Показать панели'
-                                          : 'Режим трансляции',
+                                          ? context.l10n.showPanels
+                                          : context.l10n.broadcastMode,
                                     ),
                                   ),
                                 ),
@@ -199,4 +241,8 @@ class _HostIntent extends Intent {
   const _HostIntent(this.action);
 
   final _HostAction action;
+}
+
+class _BuzzIntent extends Intent {
+  const _BuzzIntent();
 }

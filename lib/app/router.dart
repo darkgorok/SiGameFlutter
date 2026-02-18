@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../core/l10n.dart';
 import '../features/game/game_models.dart';
 import '../features/game/presentation/screens/room_editor_screen.dart';
 import '../features/game/presentation/screens/room_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/packs/edit_pack_loader_screen.dart';
 import '../features/packs/pack_editor_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/rooms/rooms_screen.dart';
@@ -15,6 +17,8 @@ abstract final class AppRoutes {
   static const settings = '/settings';
   static const rooms = '/rooms';
   static const packEditor = '/pack-editor';
+  static const packEditorCreate = '/pack-editor/create';
+  static const packEditorEdit = '/pack-editor/edit';
   static const room = '/room';
   static const roomEditor = '/room-editor';
 }
@@ -32,6 +36,12 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const RoomsScreen());
       case AppRoutes.packEditor:
         return MaterialPageRoute(builder: (_) => const PackEditorScreen());
+      case AppRoutes.packEditorCreate:
+        return MaterialPageRoute(
+          builder: (_) => const PackEditorScreen(startEmpty: true),
+        );
+      case AppRoutes.packEditorEdit:
+        return MaterialPageRoute(builder: (_) => const EditPackLoaderScreen());
       case AppRoutes.room:
         final args = settings.arguments;
         if (args is RoomRouteArgs) {
@@ -48,8 +58,13 @@ class AppRouter {
         );
       default:
         return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('Route not found'))),
+          builder: (_) => Scaffold(
+            body: Center(
+              child: Builder(
+                builder: (context) => Text(context.l10n.routeNotFound),
+              ),
+            ),
+          ),
         );
     }
   }

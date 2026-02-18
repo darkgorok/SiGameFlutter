@@ -73,12 +73,15 @@ class GameRepositoryImpl implements GameRepository {
   );
 
   @override
-  Future<String> createRoom({required String roomName}) =>
-      _service.createRoom(roomName: roomName);
+  Future<String> createRoom({required String roomName, String? password}) =>
+      _service.createRoom(roomName: roomName, password: password);
 
   @override
-  Future<void> joinRoom(String roomId, {PlayerRole role = PlayerRole.player}) =>
-      _service.joinRoom(roomId, role: role);
+  Future<void> joinRoom(
+    String roomId, {
+    PlayerRole role = PlayerRole.player,
+    String? password,
+  }) => _service.joinRoom(roomId, role: role, password: password);
 
   @override
   Future<void> markDisconnected(String roomId) =>
@@ -203,6 +206,12 @@ class GameRepositoryImpl implements GameRepository {
 
   @override
   Future<void> submitAnswer(String roomId) => _service.submitAnswer(roomId);
+
+  @override
+  Future<void> submitNumericAnswer({
+    required String roomId,
+    required num value,
+  }) => _service.submitNumericAnswer(roomId: roomId, value: value);
 
   @override
   Future<void> judgeAnswer({required String roomId, required bool correct}) =>

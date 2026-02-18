@@ -1,6 +1,8 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../../core/l10n.dart';
 
 class CountdownLabel extends StatefulWidget {
   const CountdownLabel({super.key, required this.deadlineMs, this.onExpired});
@@ -51,6 +53,6 @@ class _CountdownLabelState extends State<CountdownLabel> {
         ((widget.deadlineMs - DateTime.now().millisecondsSinceEpoch) / 1000)
             .ceil();
     final safe = left < 0 ? 0 : left;
-    return Text('Таймер: $safe сек');
+    return Text(context.l10n.timerSeconds(safe));
   }
 }

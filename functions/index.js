@@ -116,6 +116,11 @@ function ensureVoiceRole(role) {
   return role !== PLAYER_ROLE.SPECTATOR;
 }
 
+function toFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function revealFinalByHost(roomRef, roomId, hostUid) {
   await requireHost(roomRef, hostUid);
   const roomSnap = await roomRef.get();
@@ -225,6 +230,64 @@ async function handleTimerExpirationByHost(roomRef, roomId, hostUid) {
     }
 
     if (room.phase === GAME_PHASE.ANSWERING) {
+      if (room.activeQuestion?.type === 'closest_number') {
+        const amount = Number(room.wagerValue || room.activeQuestion?.cost || 0);
+        const target = toFiniteNumber(room.activeQuestion?.answer);
+        const rawAnswers = room.numericAnswers && typeof room.numericAnswers === 'object'
+          ? room.numericAnswers
+          : {};
+        const answers = Object.entries(rawAnswers)
+          .map(([playerUid, value]) => ({ playerUid, value: toFiniteNumber(value) }))
+          .filter((entry) => entry.value !== null);
+
+        if (target !== null && answers.length > 0) {
+          let minDiff = Number.POSITIVE_INFINITY;
+          for (const entry of answers) {
+            const diff = Math.abs(entry.value - target);
+            if (diff < minDiff) {
+              minDiff = diff;
+            }
+          }
+
+          const winners = answers
+            .filter((entry) => Math.abs(entry.value - target) === minDiff)
+            .map((entry) => entry.playerUid)
+            .sort((a, b) => a.localeCompare(b));
+
+          for (const winnerUid of winners) {
+            const value = toFiniteNumber(rawAnswers[winnerUid]);
+            const isExact = value !== null && value === target;
+            const scoreDelta = isExact ? amount * 2 : amount;
+            tx.set(
+              roomRef.collection('players').doc(winnerUid),
+              {
+                score: FieldValue.increment(scoreDelta),
+                correctAnswers: FieldValue.increment(1),
+              },
+              { merge: true },
+            );
+          }
+
+          tx.update(roomRef, { chooserUid: winners[0] });
+        }
+
+        tx.update(roomRef, {
+          phase: GAME_PHASE.BOARD_SELECT,
+          currentQuestionId: null,
+          activeQuestion: null,
+          buzzQueue: [],
+          currentAttemptUid: null,
+          pendingAnswer: null,
+          targetedUid: null,
+          wagerValue: null,
+          numericAnswers: null,
+          timerDeadlineAtMs: null,
+          timerRemainingMs: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return;
+      }
+
       const current = room.currentAttemptUid;
       if (current) {
         const amount = Number(room.wagerValue || room.activeQuestion?.cost || 0);
@@ -247,6 +310,7 @@ async function handleTimerExpirationByHost(roomRef, roomId, hostUid) {
         pendingAnswer: null,
         targetedUid: null,
         wagerValue: null,
+        numericAnswers: null,
         timerDeadlineAtMs: null,
         timerRemainingMs: null,
         updatedAt: FieldValue.serverTimestamp(),
@@ -304,6 +368,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       pendingAnswer: null,
       targetedUid: null,
       wagerValue: null,
+      numericAnswers: null,
       timerDeadlineAtMs: null,
       timerRemainingMs: null,
       finalTheme: null,
@@ -633,6 +698,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       chooserUid: uid,
       pausedByUid: null,
       finalAnswer: FieldValue.delete(),
+      numericAnswers: null,
       timerDeadlineAtMs: null,
       timerRemainingMs: null,
       updatedAt: FieldValue.serverTimestamp(),
@@ -671,6 +737,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
       phase: GAME_PHASE.FINAL_SETUP,
       currentQuestionId: null,
       activeQuestion: null,
+      numericAnswers: null,
       finalEligibleUids: eligible,
       timerDeadlineAtMs: null,
       timerRemainingMs: null,
@@ -836,7 +903,9 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
         ? GAME_PHASE.CAT_TARGETING
         : type === 'wager'
           ? GAME_PHASE.WAGER_BIDDING
-          : GAME_PHASE.QUESTION_REVEAL;
+          : type === 'closest_number'
+            ? GAME_PHASE.ANSWERING
+            : GAME_PHASE.QUESTION_REVEAL;
 
       tx.update(qRef, { used: true });
       tx.update(roomRef, {
@@ -858,6 +927,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
         pendingAnswer: null,
         targetedUid: null,
         wagerValue: null,
+        numericAnswers: type === 'closest_number' ? {} : null,
         timerDeadlineAtMs: Date.now() + 20000,
         timerRemainingMs: null,
         updatedAt: FieldValue.serverTimestamp(),
@@ -1024,6 +1094,42 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     return { ok: true };
   }
 
+  if (command === 'submit_numeric_answer') {
+    const value = toFiniteNumber(payload.value);
+    if (value === null) {
+      throw new functions.https.HttpsError('invalid-argument', 'value must be a finite number');
+    }
+
+    await db.runTransaction(async (tx) => {
+      const roomSnap = await tx.get(roomRef);
+      const room = roomSnap.data() || {};
+      if (room.phase !== GAME_PHASE.ANSWERING) {
+        throw new functions.https.HttpsError('failed-precondition', 'Нельзя отправить ответ на этом этапе');
+      }
+      if (room.activeQuestion?.type !== 'closest_number') {
+        throw new functions.https.HttpsError('failed-precondition', 'Этот вопрос не требует числового ответа');
+      }
+      const role = await getPlayerRole(roomRef, uid, tx);
+      if (!ensureVoiceRole(role)) {
+        throw new functions.https.HttpsError('permission-denied', 'Зритель не участвует в ответах');
+      }
+
+      const existing = room.numericAnswers && typeof room.numericAnswers === 'object'
+        ? room.numericAnswers
+        : {};
+      if (Object.prototype.hasOwnProperty.call(existing, uid)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Ответ уже отправлен');
+      }
+
+      tx.update(roomRef, {
+        [`numericAnswers.${uid}`]: value,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+    await logEvent(roomId, uid, 'answer_submit_numeric', 'Игрок отправил числовой ответ');
+    return { ok: true };
+  }
+
   if (command === 'judge_answer') {
     const correct = !!payload.correct;
 
@@ -1064,6 +1170,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
           pendingAnswer: null,
           targetedUid: null,
           wagerValue: null,
+          numericAnswers: null,
           timerDeadlineAtMs: null,
           timerRemainingMs: null,
           updatedAt: FieldValue.serverTimestamp(),
@@ -1086,6 +1193,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
             pendingAnswer: null,
             targetedUid: null,
             wagerValue: null,
+            numericAnswers: null,
             timerDeadlineAtMs: null,
             timerRemainingMs: null,
             updatedAt: FieldValue.serverTimestamp(),

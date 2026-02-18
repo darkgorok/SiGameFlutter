@@ -1,24 +1,28 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/firebase_config.dart';
+import '../core/l10n.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/initial_profile_setup_screen.dart';
+import '../l10n/app_localizations.dart';
+import 'application/app_locale_controller.dart';
 import 'application/bootstrap_provider.dart';
 import 'presentation/global_async_feedback.dart';
 import 'presentation/loading_screen.dart';
 import 'router.dart';
 
-class SiGameApp extends StatelessWidget {
+class SiGameApp extends ConsumerWidget {
   const SiGameApp({super.key});
 
   ThemeData _darkGameTheme() {
-    const bg = Color(0xFF070809);
-    const surface = Color(0xFF121417);
-    const surfaceSoft = Color(0xFF1A1D21);
-    const stroke = Color(0xFF2D3238);
+    const bg = Color(0xFF2B2B2B);
+    const surface = Color(0xFF343434);
+    const surfaceSoft = Color(0xFF3D3D3D);
+    const stroke = Color(0xFF4C4C4C);
     const textMuted = Color(0xFF9AA1AA);
     const accent = Color(0xFFEDEFF2);
 
@@ -44,10 +48,10 @@ class SiGameApp extends StatelessWidget {
       dividerColor: stroke,
       fontFamily: 'Segoe UI',
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: bg,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: false,
+        centerTitle: true,
         titleTextStyle: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w700,
@@ -158,13 +162,22 @@ class SiGameApp extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appLocale = ref.watch(appLocaleProvider);
     final dark = _darkGameTheme();
     return MaterialApp(
-      title: 'Своя игра онлайн',
+      onGenerateTitle: (context) => context.l10n.appTitle,
       themeMode: ThemeMode.dark,
       theme: dark,
       darkTheme: dark,
+      locale: appLocale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('ru'), Locale('uk')],
       builder: (context, child) {
         return GlobalAsyncFeedback(child: child ?? const SizedBox.shrink());
       },
@@ -193,7 +206,7 @@ class _BootstrapScreenState extends ConsumerState<BootstrapScreen> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Ошибка инициализации: $error'),
+            child: Text(context.l10n.initializationError(error.toString())),
           ),
         ),
       ),
@@ -204,6 +217,10 @@ class _BootstrapScreenState extends ConsumerState<BootstrapScreen> {
         return FutureBuilder<SharedPreferences>(
           future: SharedPreferences.getInstance(),
           builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done ||
+                !snapshot.hasData) {
+              return const LoadingScreen();
+            }
             final nickname =
                 snapshot.data?.getString('profile_nickname')?.trim() ?? '';
             if (nickname.isEmpty) {
@@ -222,16 +239,12 @@ class FirebaseSetupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
-            'Firebase не настроен.\n\n'
-            'Создай локальный файл config/firebase.web.json (пример в '
-            'config/firebase.web.example.json), затем запусти:\n\n'
-            'flutter run -d chrome --dart-define-from-file=config/firebase.web.json\n\n'
-            'Тогда будут доступны комнаты, синхронизация, ре-коннект и онлайн-игра.',
+            context.l10n.firebaseNotConfiguredMessage,
             textAlign: TextAlign.center,
           ),
         ),

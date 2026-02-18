@@ -16,6 +16,9 @@ class GameUiPermissions {
     if (room.phase != GamePhase.answering || room.status == GameStatus.paused) {
       return false;
     }
+    if (room.activeQuestion?.type == QuestionType.closestNumber) {
+      return false;
+    }
     if (room.currentAttemptUid != null) {
       return false;
     }

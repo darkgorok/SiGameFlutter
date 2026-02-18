@@ -5,44 +5,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function roomPath(roomId) {
-      return /databases/$(database)/documents/rooms/$(roomId);
-    }
-
-    function isHost(roomId) {
-      return signedIn() && get(roomPath(roomId)).data.hostUid == request.auth.uid;
-    }
-
-    function isRoomPlayer(roomId) {
-      return signedIn() &&
-        exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid));
-    }
-
-    function canReadRoom(roomId) {
-      return isHost(roomId) || isRoomPlayer(roomId);
-    }
-
     match /profiles/{uid} {
       allow read: if signedIn();
       allow create, update, delete: if false;
     }
 
     match /rooms/{roomId} {
-      allow read: if canReadRoom(roomId);
+      allow read: if true;
       allow create, update, delete: if false;
 
       match /players/{uid} {
-        allow read: if canReadRoom(roomId);
+        allow read: if true;
         allow create, update, delete: if false;
       }
 
       match /questions/{questionId} {
-        allow read: if canReadRoom(roomId);
+        allow read: if true;
         allow create, update, delete: if false;
       }
 
       match /events/{eventId} {
-        allow read: if canReadRoom(roomId);
+        allow read: if true;
         allow create, update, delete: if false;
       }
     }

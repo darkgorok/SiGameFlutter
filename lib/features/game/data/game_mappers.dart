@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../game_models.dart';
 import 'game_dtos.dart';
@@ -9,6 +9,7 @@ extension RoomDtoToDomain on RoomDto {
     return RoomModel(
       id: id,
       name: data['name'] as String? ?? id,
+      passwordProtected: _readPasswordProtected(data),
       hostUid: data['hostUid'] as String? ?? '',
       status: GameStatus.fromValue(data['status'] as String?),
       phase: GamePhase.fromValue(data['phase'] as String?),
@@ -33,13 +34,29 @@ extension RoomDtoToDomain on RoomDto {
           .cast<String>(),
     );
   }
+
+  bool _readPasswordProtected(Map<String, dynamic> data) {
+    final direct = data['passwordProtected'];
+    if (direct is bool) {
+      return direct;
+    }
+    final hasPassword = data['hasPassword'];
+    if (hasPassword is bool) {
+      return hasPassword;
+    }
+    final required = data['passwordRequired'];
+    if (required is bool) {
+      return required;
+    }
+    return false;
+  }
 }
 
 extension QuestionDtoToDomain on QuestionDto {
   QuestionModel toDomain() {
     return QuestionModel(
       id: id,
-      theme: data['theme'] as String? ?? 'Без темы',
+      theme: data['theme'] as String? ?? 'No theme',
       text: data['text'] as String? ?? '',
       answer: data['answer'] as String? ?? '',
       cost: (data['cost'] as num?)?.toInt() ?? 100,

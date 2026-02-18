@@ -8,16 +8,7 @@ class LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0B0F19), Color(0xFF111827)],
-          ),
-        ),
-        child: const Center(child: LoadingPane()),
-      ),
+      body: const Center(child: LoadingPane()),
     );
   }
 }

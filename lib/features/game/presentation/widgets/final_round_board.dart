@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../../../app/presentation/loading_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/presentation/loading_screen.dart';
+import '../../../../core/l10n.dart';
 import '../../application/game_providers.dart';
+import '../../game_localizations.dart';
 import '../../game_models.dart';
 
 class FinalRoundBoard extends ConsumerStatefulWidget {
@@ -49,8 +51,10 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
       padding: const EdgeInsets.all(12),
       child: ListView(
         children: [
-          Text('Финальный раунд: ${room.phase.label}'),
-          Text('Допущены: ${room.finalEligibleUids.length} игроков'),
+          Text(
+            '${context.l10n.finalRoundLabel}: ${room.phase.localizedLabel(context)}',
+          ),
+          Text(context.l10n.eligiblePlayers(room.finalEligibleUids.length)),
           const SizedBox(height: 8),
           if (isHost)
             Card(
@@ -59,23 +63,23 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('Настройка финального вопроса'),
+                    Text(context.l10n.finalQuestionSetup),
                     TextField(
                       controller: _themeCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Тема финала',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.finalThemeLabel,
                       ),
                     ),
                     TextField(
                       controller: _questionCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Вопрос финала',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.finalQuestionFieldLabel,
                       ),
                     ),
                     TextField(
                       controller: _answerCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Контрольный ответ (для ведущего)',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.finalControlAnswerLabel,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -89,21 +93,21 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                             question: _questionCtrl.text.trim(),
                             answer: _answerCtrl.text.trim(),
                           ),
-                          child: const Text('Сохранить вопрос'),
+                          child: Text(context.l10n.saveQuestion),
                         ),
                         ElevatedButton(
                           onPressed: () =>
                               actions.openFinalWagers(widget.roomId),
-                          child: const Text('Открыть ставки'),
+                          child: Text(context.l10n.openWagers),
                         ),
                         ElevatedButton(
                           onPressed: () =>
                               actions.openFinalAnswers(widget.roomId),
-                          child: const Text('Начать голосовые ответы'),
+                          child: Text(context.l10n.startVoiceAnswers),
                         ),
                         ElevatedButton(
                           onPressed: () => actions.revealFinal(widget.roomId),
-                          child: const Text('Вскрыть финал'),
+                          child: Text(context.l10n.revealFinal),
                         ),
                       ],
                     ),
@@ -111,10 +115,11 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                 ),
               ),
             ),
-          if (room.finalTheme != null) Text('Тема: ${room.finalTheme}'),
+          if (room.finalTheme != null)
+            Text('${context.l10n.themeLabel}: ${room.finalTheme}'),
           if (room.phase == GamePhase.finalAnswering &&
               room.finalQuestion != null)
-            Text('Вопрос: ${room.finalQuestion}'),
+            Text('${context.l10n.questionLabel}: ${room.finalQuestion}'),
           const SizedBox(height: 8),
           if (room.phase == GamePhase.finalWagering &&
               widget.myRole != PlayerRole.spectator)
@@ -124,8 +129,8 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                   child: TextField(
                     controller: _wagerCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Ваша финальная ставка',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.yourFinalWager,
                     ),
                   ),
                 ),
@@ -135,23 +140,22 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                     roomId: widget.roomId,
                     wager: int.tryParse(_wagerCtrl.text.trim()) ?? 0,
                   ),
-                  child: const Text('Поставить'),
+                  child: Text(context.l10n.placeWager),
                 ),
               ],
             ),
           if (room.phase == GamePhase.finalAnswering)
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(12),
-                child: Text(
-                  'Ответы даются только голосом в Discord. Ведущий отмечает исход каждого ответа.',
-                ),
+                padding: const EdgeInsets.all(12),
+                child: Text(context.l10n.discordVoiceInfo),
               ),
             ),
           if (isHost && room.phase == GamePhase.finalAnswering)
             playersAsync.when(
               loading: () => const Center(child: LoadingPane()),
-              error: (error, stackTrace) => Text('Ошибка: $error'),
+              error: (error, stackTrace) =>
+                  Text(context.l10n.errorWithDetails(error.toString())),
               data: (players) {
                 final eligible = players
                     .where((p) => room.finalEligibleUids.contains(p.uid))
@@ -165,8 +169,15 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('${p.nickname} | ставка: ${p.finalWager}'),
-                                Text('Решение: ${p.finalResult.label}'),
+                                Text(
+                                  context.l10n.playerWagerLine(
+                                    p.nickname,
+                                    p.finalWager,
+                                  ),
+                                ),
+                                Text(
+                                  '${context.l10n.decisionLabel}: ${p.finalResult.localizedLabel(context)}',
+                                ),
                                 Wrap(
                                   spacing: 8,
                                   children: [
@@ -177,7 +188,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                             targetUid: p.uid,
                                             result: FinalResult.correct,
                                           ),
-                                      child: const Text('Верно'),
+                                      child: Text(
+                                        context.l10n.finalResultCorrect,
+                                      ),
                                     ),
                                     OutlinedButton(
                                       onPressed: () =>
@@ -186,7 +199,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                             targetUid: p.uid,
                                             result: FinalResult.wrong,
                                           ),
-                                      child: const Text('Неверно'),
+                                      child: Text(
+                                        context.l10n.finalResultWrong,
+                                      ),
                                     ),
                                     OutlinedButton(
                                       onPressed: () =>
@@ -195,7 +210,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                             targetUid: p.uid,
                                             result: FinalResult.noAnswer,
                                           ),
-                                      child: const Text('Без ответа'),
+                                      child: Text(
+                                        context.l10n.finalResultNoAnswer,
+                                      ),
                                     ),
                                   ],
                                 ),

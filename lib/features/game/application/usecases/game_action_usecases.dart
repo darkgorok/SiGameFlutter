@@ -18,12 +18,15 @@ class GameActionUseCases {
     );
   }
 
-  Future<String> createRoom({required String roomName}) {
-    return _repository.createRoom(roomName: roomName);
+  Future<String> createRoom({required String roomName, String? password}) {
+    return _repository.createRoom(roomName: roomName, password: password);
   }
 
-  Future<void> joinRoom(String roomId, {PlayerRole role = PlayerRole.player}) =>
-      _repository.joinRoom(roomId, role: role);
+  Future<void> joinRoom(
+    String roomId, {
+    PlayerRole role = PlayerRole.player,
+    String? password,
+  }) => _repository.joinRoom(roomId, role: role, password: password);
 
   Future<void> markDisconnected(String roomId) {
     return _repository.markDisconnected(roomId);
@@ -141,6 +144,12 @@ class GameActionUseCases {
   Future<void> buzz(String roomId) => _repository.buzz(roomId);
   Future<void> submitAnswer(String roomId) {
     return _repository.submitAnswer(roomId);
+  }
+  Future<void> submitNumericAnswer({
+    required String roomId,
+    required num value,
+  }) {
+    return _repository.submitNumericAnswer(roomId: roomId, value: value);
   }
 
   Future<void> judgeAnswer({required String roomId, required bool correct}) {

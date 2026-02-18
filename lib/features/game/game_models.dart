@@ -1,11 +1,11 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum GameStatus {
-  lobby('lobby', 'Лобби'),
-  inGame('in_game', 'Игра'),
-  paused('paused', 'Пауза'),
-  finalRound('final_round', 'Финал'),
-  completed('completed', 'Завершена');
+  lobby('lobby', 'Lobby'),
+  inGame('in_game', 'In game'),
+  paused('paused', 'Paused'),
+  finalRound('final_round', 'Final'),
+  completed('completed', 'Completed');
 
   const GameStatus(this.value, this.label);
   final String value;
@@ -20,18 +20,18 @@ enum GameStatus {
 }
 
 enum GamePhase {
-  lobby('lobby', 'Лобби'),
-  boardSelect('board_select', 'Выбор вопроса'),
-  questionReveal('question_reveal', 'Озвучивание вопроса'),
-  catTargeting('cat_targeting', 'Кот в мешке: выбор игрока'),
-  wagerBidding('wager_bidding', 'Аукцион: ставка'),
-  answering('answering', 'Ответы'),
-  answerReview('answer_review', 'Решение ведущего'),
-  finalSetup('final_setup', 'Финал: настройка'),
-  finalWagering('final_wagering', 'Финал: ставки'),
-  finalAnswering('final_answering', 'Финал: голосовые ответы'),
-  finalReveal('final_reveal', 'Финал: вскрытие'),
-  gameOver('game_over', 'Игра завершена');
+  lobby('lobby', 'Lobby'),
+  boardSelect('board_select', 'Question selection'),
+  questionReveal('question_reveal', 'Question reveal'),
+  catTargeting('cat_targeting', 'Cat in a bag: choose player'),
+  wagerBidding('wager_bidding', 'Auction: wager'),
+  answering('answering', 'Answering'),
+  answerReview('answer_review', 'Host decision'),
+  finalSetup('final_setup', 'Final: setup'),
+  finalWagering('final_wagering', 'Final: wagers'),
+  finalAnswering('final_answering', 'Final: voice answers'),
+  finalReveal('final_reveal', 'Final: reveal'),
+  gameOver('game_over', 'Game over');
 
   const GamePhase(this.value, this.label);
   final String value;
@@ -46,9 +46,10 @@ enum GamePhase {
 }
 
 enum QuestionType {
-  normal('normal', 'Обычный'),
-  cat('cat_in_bag', 'Кот в мешке'),
-  wager('wager', 'Вопрос-аукцион');
+  normal('normal', 'Normal'),
+  cat('cat_in_bag', 'Cat in a bag'),
+  wager('wager', 'Auction question'),
+  closestNumber('closest_number', 'Closest number');
 
   const QuestionType(this.value, this.label);
   final String value;
@@ -63,10 +64,10 @@ enum QuestionType {
 }
 
 enum QuestionMediaType {
-  none('none', 'Без медиа'),
-  image('image', 'Изображение'),
-  audio('audio', 'Аудио'),
-  video('video', 'Видео');
+  none('none', 'No media'),
+  image('image', 'Image'),
+  audio('audio', 'Audio'),
+  video('video', 'Video');
 
   const QuestionMediaType(this.value, this.label);
   final String value;
@@ -81,10 +82,10 @@ enum QuestionMediaType {
 }
 
 enum PlayerRole {
-  host('host', 'Ведущий'),
-  player('player', 'Игрок'),
-  spectator('spectator', 'Зритель'),
-  editor('editor', 'Редактор');
+  host('host', 'Host'),
+  player('player', 'Player'),
+  spectator('spectator', 'Spectator'),
+  editor('editor', 'Editor');
 
   const PlayerRole(this.value, this.label);
   final String value;
@@ -99,10 +100,10 @@ enum PlayerRole {
 }
 
 enum FinalResult {
-  pending('pending', 'Ожидает решения'),
-  correct('correct', 'Верно'),
-  wrong('wrong', 'Неверно'),
-  noAnswer('no_answer', 'Без ответа');
+  pending('pending', 'Pending'),
+  correct('correct', 'Correct'),
+  wrong('wrong', 'Wrong'),
+  noAnswer('no_answer', 'No answer');
 
   const FinalResult(this.value, this.label);
   final String value;
@@ -144,6 +145,7 @@ class RoomModel {
   RoomModel({
     required this.id,
     required this.name,
+    required this.passwordProtected,
     required this.hostUid,
     required this.status,
     required this.phase,
@@ -167,6 +169,7 @@ class RoomModel {
 
   final String id;
   final String name;
+  final bool passwordProtected;
   final String hostUid;
   final GameStatus status;
   final GamePhase phase;
@@ -193,6 +196,7 @@ class RoomModel {
     return RoomModel(
       id: doc.id,
       name: data['name'] as String? ?? doc.id,
+      passwordProtected: _readPasswordProtected(data),
       hostUid: data['hostUid'] as String? ?? '',
       status: GameStatus.fromValue(data['status'] as String?),
       phase: GamePhase.fromValue(data['phase'] as String?),
@@ -216,6 +220,22 @@ class RoomModel {
       finalEligibleUids: ((data['finalEligibleUids'] as List?) ?? [])
           .cast<String>(),
     );
+  }
+
+  static bool _readPasswordProtected(Map<String, dynamic> data) {
+    final direct = data['passwordProtected'];
+    if (direct is bool) {
+      return direct;
+    }
+    final hasPassword = data['hasPassword'];
+    if (hasPassword is bool) {
+      return hasPassword;
+    }
+    final required = data['passwordRequired'];
+    if (required is bool) {
+      return required;
+    }
+    return false;
   }
 }
 
@@ -245,7 +265,7 @@ class ActiveQuestion {
   factory ActiveQuestion.fromMap(Map<String, dynamic> data) {
     return ActiveQuestion(
       id: data['id'] as String? ?? '',
-      theme: data['theme'] as String? ?? 'Тема',
+      theme: data['theme'] as String? ?? 'Theme',
       text: data['text'] as String? ?? '',
       answer: data['answer'] as String? ?? '',
       cost: (data['cost'] as num?)?.toInt() ?? 100,
@@ -304,7 +324,7 @@ class QuestionModel {
     final data = doc.data();
     return QuestionModel(
       id: doc.id,
-      theme: data['theme'] as String? ?? 'Без темы',
+      theme: data['theme'] as String? ?? 'No theme',
       text: data['text'] as String? ?? '',
       answer: data['answer'] as String? ?? '',
       cost: (data['cost'] as num?)?.toInt() ?? 100,

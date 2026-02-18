@@ -13,8 +13,12 @@ abstract class GameRepository {
     required String avatarUrl,
   });
 
-  Future<String> createRoom({required String roomName});
-  Future<void> joinRoom(String roomId, {PlayerRole role = PlayerRole.player});
+  Future<String> createRoom({required String roomName, String? password});
+  Future<void> joinRoom(
+    String roomId, {
+    PlayerRole role = PlayerRole.player,
+    String? password,
+  });
   Future<void> markDisconnected(String roomId);
 
   Future<void> addQuestion({
@@ -65,6 +69,7 @@ abstract class GameRepository {
   Future<void> setWagerAndOpen({required String roomId, required int wager});
   Future<void> buzz(String roomId);
   Future<void> submitAnswer(String roomId);
+  Future<void> submitNumericAnswer({required String roomId, required num value});
   Future<void> judgeAnswer({required String roomId, required bool correct});
 
   Future<void> applyScore({

@@ -2,6 +2,11 @@ import '../game_models.dart';
 
 abstract class GameRepository {
   Stream<List<RoomModel>> watchRooms();
+  Stream<List<RoomModel>> watchRoomsLimited({required int limit});
+  Future<RoomsPageModel> fetchRoomsPage({
+    required int limit,
+    int? startAfterCreatedAtMs,
+  });
   Stream<RoomModel?> watchRoom(String roomId);
   Stream<List<PlayerModel>> watchPlayers(String roomId);
   Stream<List<QuestionModel>> watchQuestions(String roomId);
@@ -24,6 +29,10 @@ abstract class GameRepository {
   Future<void> addQuestion({
     required String roomId,
     required QuestionDraft draft,
+  });
+  Future<void> addQuestions({
+    required String roomId,
+    required List<QuestionDraft> drafts,
   });
   Future<void> setPlayerRole({
     required String roomId,
@@ -69,7 +78,10 @@ abstract class GameRepository {
   Future<void> setWagerAndOpen({required String roomId, required int wager});
   Future<void> buzz(String roomId);
   Future<void> submitAnswer(String roomId);
-  Future<void> submitNumericAnswer({required String roomId, required num value});
+  Future<void> submitNumericAnswer({
+    required String roomId,
+    required num value,
+  });
   Future<void> judgeAnswer({required String roomId, required bool correct});
 
   Future<void> applyScore({

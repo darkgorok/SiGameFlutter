@@ -44,7 +44,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
     final room = widget.room;
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final isHost = room.hostUid == uid;
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(finalActionsProvider);
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
 
     return Padding(

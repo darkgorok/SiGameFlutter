@@ -26,7 +26,7 @@ Future<void> showAppPopup(
     barrierLabel: 'popup',
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 180),
-    pageBuilder: (context, _, _) {
+    pageBuilder: (context, animation, secondaryAnimation) {
       return Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
@@ -68,7 +68,7 @@ Future<void> showAppPopup(
         ),
       );
     },
-    transitionBuilder: (_, animation, __, child) {
+    transitionBuilder: (_, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(parent: animation, curve: Curves.easeOut);
       return FadeTransition(
         opacity: curved,

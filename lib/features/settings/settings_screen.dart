@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/presentation/loading_screen.dart';
+import '../../core/avatar_data_url.dart';
 import '../../core/hotkeys.dart';
 import '../../core/l10n.dart';
 import '../../core/providers.dart';
@@ -31,7 +28,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _avatarUrl = '';
   double _volume = 1.0;
   bool _profileLoaded = false;
-  bool _saving = false;
+  final bool _saving = false;
   bool _avatarHovered = false;
   bool _captureAnswerHotkey = false;
   LogicalKeyboardKey _answerHotkey = AppHotkeys.defaultAnswerHotkey;
@@ -61,19 +58,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    final profileAsync = ref.watch(profileStreamProvider(uid));
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.settingsTitle)),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('profiles')
-            .doc(uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: LoadingPane());
-          }
-
-          final data = snapshot.data?.data() ?? <String, dynamic>{};
+      body: profileAsync.when(
+        loading: () => const Center(child: LoadingPane()),
+        error: (error, stackTrace) => Center(
+          child: Text(context.l10n.errorWithDetails(error.toString())),
+        ),
+        data: (data) {
           if (!_profileLoaded) {
             _suppressAutoSave = true;
             _profileLoaded = true;
@@ -234,7 +227,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _loadVolume() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ref.read(sharedPreferencesProvider.future);
     final value = prefs.getDouble('setting_volume');
     if (!mounted || value == null) return;
     setState(() => _volume = value.clamp(0.0, 1.0));
@@ -334,7 +327,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _saveInFlight = true;
     final name = _nameCtrl.text.trim();
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ref.read(sharedPreferencesProvider.future);
       await prefs.setDouble('setting_volume', _volume);
 
       if (name.isEmpty) {
@@ -344,7 +337,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final avatarUrl = _avatarBytes == null
           ? _avatarUrl
-          : _buildAvatarDataUrl(_avatarBytes!);
+          : buildAvatarDataUrl(_avatarBytes);
 
       await ref
           .read(gameRepositoryProvider)
@@ -374,46 +367,5 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _scheduleAutoSave(const Duration(milliseconds: 200));
       }
     }
-  }
-
-  String _buildAvatarDataUrl(Uint8List bytes) {
-    final safeBytes = Uint8List.fromList(bytes);
-    final mime = _detectImageMime(safeBytes);
-    return 'data:$mime;base64,${base64Encode(safeBytes)}';
-  }
-
-  String _detectImageMime(Uint8List bytes) {
-    if (bytes.length >= 8 &&
-        bytes[0] == 0x89 &&
-        bytes[1] == 0x50 &&
-        bytes[2] == 0x4E &&
-        bytes[3] == 0x47) {
-      return 'image/png';
-    }
-    if (bytes.length >= 3 &&
-        bytes[0] == 0xFF &&
-        bytes[1] == 0xD8 &&
-        bytes[2] == 0xFF) {
-      return 'image/jpeg';
-    }
-    if (bytes.length >= 6 &&
-        bytes[0] == 0x47 &&
-        bytes[1] == 0x49 &&
-        bytes[2] == 0x46 &&
-        bytes[3] == 0x38) {
-      return 'image/gif';
-    }
-    if (bytes.length >= 12 &&
-        bytes[0] == 0x52 &&
-        bytes[1] == 0x49 &&
-        bytes[2] == 0x46 &&
-        bytes[3] == 0x46 &&
-        bytes[8] == 0x57 &&
-        bytes[9] == 0x45 &&
-        bytes[10] == 0x42 &&
-        bytes[11] == 0x50) {
-      return 'image/webp';
-    }
-    return 'application/octet-stream';
   }
 }

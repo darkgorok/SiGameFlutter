@@ -48,6 +48,15 @@ const ALLOWED_JOIN_ROLES = new Set([
   PLAYER_ROLE.EDITOR,
 ]);
 
+const FEATURE_FLAGS_DEFAULTS = {
+  bulkQuestionImport: true,
+  timerAutoTick: true,
+};
+
+let featureFlagsCache = null;
+let featureFlagsCacheAtMs = 0;
+const FEATURE_FLAGS_TTL_MS = 30_000;
+
 async function getProfile(uid) {
   const snap = await db.collection('profiles').doc(uid).get();
   return snap.data() || {};
@@ -88,6 +97,44 @@ async function logEvent(roomId, actorUid, type, message) {
     message,
     createdAt: FieldValue.serverTimestamp(),
   });
+}
+
+async function loadFeatureFlags() {
+  const now = Date.now();
+  if (featureFlagsCache && now - featureFlagsCacheAtMs < FEATURE_FLAGS_TTL_MS) {
+    return featureFlagsCache;
+  }
+  const snap = await db.collection('config').doc('feature_flags').get();
+  const data = snap.data() || {};
+  featureFlagsCache = { ...FEATURE_FLAGS_DEFAULTS, ...data };
+  featureFlagsCacheAtMs = now;
+  return featureFlagsCache;
+}
+
+async function isFeatureEnabled(flagKey) {
+  const flags = await loadFeatureFlags();
+  return Boolean(flags[flagKey]);
+}
+
+function logCommandTelemetry({
+  command,
+  roomId,
+  uid,
+  ok,
+  durationMs,
+  errorCode,
+}) {
+  const payload = {
+    event: 'game_command',
+    command,
+    roomId: roomId || null,
+    uid,
+    ok,
+    durationMs,
+    errorCode: errorCode || null,
+    timestamp: new Date().toISOString(),
+  };
+  console.log(JSON.stringify(payload));
 }
 
 function requireAuth(context) {
@@ -339,9 +386,15 @@ async function handleTimerExpirationByHost(roomRef, roomId, hostUid) {
   await logEvent(roomId, hostUid, 'timer_expire', 'Этап завершен по таймеру');
 }
 
-exports.gameCommand = functions.https.onCall(async (data, context) => {
+async function gameCommandHandler(data, context) {
+  const startedAtMs = Date.now();
+  let command = String(data?.command || '');
+  let roomIdForTelemetry = '';
+  let telemetryOk = true;
+  let telemetryErrorCode = null;
+
+  try {
   const uid = requireAuth(context);
-  const command = String(data?.command || '');
   const payload = data?.data || {};
 
   if (!command) {
@@ -433,6 +486,7 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
   }
 
   const roomId = String(data?.roomId || payload.roomId || '');
+  roomIdForTelemetry = roomId;
   if (!roomId) {
     throw new functions.https.HttpsError('invalid-argument', 'roomId required');
   }
@@ -605,6 +659,44 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
     });
     await logEvent(roomId, uid, 'question_add', 'Добавлен вопрос');
     return { ok: true };
+  }
+
+  if (command === 'add_questions_bulk') {
+    if (!await isFeatureEnabled('bulkQuestionImport')) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Bulk question import is disabled',
+      );
+    }
+    await requireHost(roomRef, uid);
+    const questions = Array.isArray(payload.questions) ? payload.questions : [];
+    if (questions.length === 0) {
+      return { ok: true, imported: 0 };
+    }
+
+    const batch = db.batch();
+    let imported = 0;
+    for (const item of questions.slice(0, 500)) {
+      const q = item && typeof item === 'object' ? item : {};
+      const qRef = roomRef.collection('questions').doc();
+      batch.set(qRef, {
+        theme: String(q.theme || '').trim() || 'Без темы',
+        text: String(q.text || ''),
+        cost: Number(q.cost || 100),
+        round: Number(q.round || 1),
+        type: String(q.type || 'normal'),
+        mediaUrl: String(q.mediaUrl || ''),
+        mediaType: String(q.mediaType || 'none'),
+        aliases: normalizeAliases(q.aliases || []),
+        used: false,
+        createdBy: uid,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      imported += 1;
+    }
+    await batch.commit();
+    await logEvent(roomId, uid, 'question_add_bulk', `Добавлено вопросов: ${imported}`);
+    return { ok: true, imported };
   }
 
   if (command === 'save_pack') {
@@ -1290,11 +1382,31 @@ exports.gameCommand = functions.https.onCall(async (data, context) => {
   }
 
   throw new functions.https.HttpsError('invalid-argument', `Unknown command: ${command}`);
-});
+  } catch (error) {
+    telemetryOk = false;
+    telemetryErrorCode = error?.code || 'internal';
+    throw error;
+  } finally {
+    logCommandTelemetry({
+      command,
+      roomId: roomIdForTelemetry,
+      uid: context?.auth?.uid || null,
+      ok: telemetryOk,
+      durationMs: Date.now() - startedAtMs,
+      errorCode: telemetryErrorCode,
+    });
+  }
+}
+
+exports.gameCommandHandler = gameCommandHandler;
+exports.gameCommand = functions.https.onCall(gameCommandHandler);
 
 exports.serverTimerTick = functions.pubsub
   .schedule('every 1 minutes')
   .onRun(async () => {
+    if (!await isFeatureEnabled('timerAutoTick')) {
+      return null;
+    }
     const now = Date.now();
     const rooms = await db
       .collection('rooms')

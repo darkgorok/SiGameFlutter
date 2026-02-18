@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/shared_prefs_cache.dart';
 
 const supportedLanguageCodes = <String>{'en', 'ru', 'uk'};
 
@@ -20,7 +21,7 @@ class AppLocaleController extends StateNotifier<Locale?> {
   bool _explicitSelection = false;
 
   Future<void> _loadSavedLocale() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await getSharedPreferencesCached();
     final savedCode = prefs.getString('setting_language_code');
     if (_explicitSelection) return;
     if (savedCode == null || !supportedLanguageCodes.contains(savedCode)) {
@@ -33,7 +34,7 @@ class AppLocaleController extends StateNotifier<Locale?> {
     if (!supportedLanguageCodes.contains(code)) return;
     _explicitSelection = true;
     state = Locale(code);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await getSharedPreferencesCached();
     await prefs.setString('setting_language_code', code);
   }
 }

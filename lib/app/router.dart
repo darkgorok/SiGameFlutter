@@ -49,24 +49,33 @@ class AppRouter {
             builder: (_) => RoomScreen(roomId: args.roomId, role: args.role),
           );
         }
-        final roomId = args! as String;
-        return MaterialPageRoute(builder: (_) => RoomScreen(roomId: roomId));
+        if (args is String && args.isNotEmpty) {
+          return MaterialPageRoute(builder: (_) => RoomScreen(roomId: args));
+        }
+        return _fallbackRoute();
       case AppRoutes.roomEditor:
-        final roomId = settings.arguments! as String;
-        return MaterialPageRoute(
-          builder: (_) => RoomEditorScreen(roomId: roomId),
-        );
+        final args = settings.arguments;
+        if (args is String && args.isNotEmpty) {
+          return MaterialPageRoute(
+            builder: (_) => RoomEditorScreen(roomId: args),
+          );
+        }
+        return _fallbackRoute();
       default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(
-              child: Builder(
-                builder: (context) => Text(context.l10n.routeNotFound),
-              ),
-            ),
-          ),
-        );
+        return _fallbackRoute();
     }
+  }
+
+  static Route<dynamic> _fallbackRoute() {
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        body: Center(
+          child: Builder(
+            builder: (context) => Text(context.l10n.routeNotFound),
+          ),
+        ),
+      ),
+    );
   }
 }
 

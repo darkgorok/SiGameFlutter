@@ -103,13 +103,15 @@ class HomeScreen extends ConsumerWidget {
       text: context.l10n.newGameDefault,
     );
     final passwordCtrl = TextEditingController();
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final roomActions = ref.read(roomActionsProvider);
+    final questionActions = ref.read(questionActionsProvider);
 
     LocalPackDocument? selectedPack;
     bool busy = false;
 
     Future<void> pickPack(StateSetter setDialogState) async {
       if (busy) return;
+      final noQuestionsMessage = context.l10n.noQuestionsInFile;
       setDialogState(() => busy = true);
       try {
         final jsonText = await pickPackJsonText();
@@ -119,7 +121,7 @@ class HomeScreen extends ConsumerWidget {
         final raw = jsonDecode(jsonText);
         final pack = LocalPackDocument.fromJson(raw);
         if (pack.questions.isEmpty) {
-          throw Exception(context.l10n.noQuestionsInFile);
+          throw Exception(noQuestionsMessage);
         }
         selectedPack = pack;
       } catch (_) {
@@ -157,13 +159,14 @@ class HomeScreen extends ConsumerWidget {
 
       setDialogState(() => busy = true);
       try {
-        final roomId = await actions.createRoom(
+        final roomId = await roomActions.createRoom(
           roomName: roomName,
           password: password.isEmpty ? null : password,
         );
-        for (final question in selectedPack!.questions) {
-          await actions.addQuestion(roomId: roomId, draft: question.toDraft());
-        }
+        await questionActions.addQuestions(
+          roomId: roomId,
+          drafts: selectedPack!.questions.map((q) => q.toDraft()).toList(),
+        );
         if (!context.mounted) return;
         Navigator.of(context).pop();
         Navigator.of(

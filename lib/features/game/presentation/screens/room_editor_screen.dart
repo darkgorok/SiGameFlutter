@@ -160,6 +160,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
+                      final l10n = context.l10n;
                       await actions.addQuestion(
                         roomId: widget.roomId,
                         draft: QuestionDraft(
@@ -180,8 +181,8 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       _mediaUrlCtrl.clear();
                       if (!mounted) return;
                       showAppPopup(
-                        context,
-                        message: context.l10n.questionAdded,
+                        this.context,
+                        message: l10n.questionAdded,
                         type: AppPopupType.success,
                       );
                     },
@@ -285,14 +286,15 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () async {
+                    final l10n = context.l10n;
                     final result = await actions.savePack(
                       roomId: widget.roomId,
                       name: _packNameCtrl.text.trim(),
                     );
                     if (!mounted) return;
                     showAppPopup(
-                      context,
-                      message: context.l10n.packSavedVersion(result.version),
+                      this.context,
+                      message: l10n.packSavedVersion(result.version),
                       type: AppPopupType.success,
                     );
                   },
@@ -305,7 +307,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _showPacksDialog(context, actions),
+                    onPressed: () => _showPacksDialog(actions),
                     child: Text(context.l10n.packsCatalog),
                   ),
                 ),
@@ -351,12 +353,9 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
         .toList();
   }
 
-  Future<void> _showPacksDialog(
-    BuildContext context,
-    GameActionsController actions,
-  ) async {
+  Future<void> _showPacksDialog(GameActionsController actions) async {
     final packs = await actions.listPacks();
-    if (!context.mounted) return;
+    if (!mounted) return;
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -430,6 +429,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final l10n = context.l10n;
                 try {
                   final raw = jsonDecode(ctrl.text);
                   final list = raw is List
@@ -437,12 +437,12 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       : (raw is Map<String, dynamic>
                             ? (raw['questions'] as List? ?? const [])
                             : const []);
+                  final drafts = <QuestionDraft>[];
                   for (final item in list) {
                     if (item is! Map) continue;
                     final map = Map<String, dynamic>.from(item);
-                    await actions.addQuestion(
-                      roomId: widget.roomId,
-                      draft: QuestionDraft(
+                    drafts.add(
+                      QuestionDraft(
                         theme: (map['theme'] as String? ?? '').trim(),
                         text: (map['text'] as String? ?? '').trim(),
                         answer: (map['answer'] as String? ?? '').trim(),
@@ -461,13 +461,17 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                       ),
                     );
                   }
+                  await actions.addQuestions(
+                    roomId: widget.roomId,
+                    drafts: drafts,
+                  );
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
                 } catch (e) {
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   showAppPopup(
                     context,
-                    message: context.l10n.importError(e.toString()),
+                    message: l10n.importError(e.toString()),
                     type: AppPopupType.error,
                   );
                 }

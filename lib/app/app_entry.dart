@@ -2,10 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/firebase_config.dart';
 import '../core/l10n.dart';
+import '../core/providers.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/initial_profile_setup_screen.dart';
 import '../l10n/app_localizations.dart';
@@ -214,15 +214,19 @@ class _BootstrapScreenState extends ConsumerState<BootstrapScreen> {
         if (FirebaseAuth.instance.currentUser == null) {
           return const LoadingScreen();
         }
-        return FutureBuilder<SharedPreferences>(
-          future: SharedPreferences.getInstance(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done ||
-                !snapshot.hasData) {
-              return const LoadingScreen();
-            }
-            final nickname =
-                snapshot.data?.getString('profile_nickname')?.trim() ?? '';
+        final prefsAsync = ref.watch(sharedPreferencesProvider);
+        return prefsAsync.when(
+          loading: () => const LoadingScreen(),
+          error: (error, stackTrace) => Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(context.l10n.initializationError(error.toString())),
+              ),
+            ),
+          ),
+          data: (prefs) {
+            final nickname = prefs.getString('profile_nickname')?.trim() ?? '';
             if (nickname.isEmpty) {
               return const InitialProfileSetupScreen();
             }

@@ -1,4 +1,4 @@
-﻿import '../game/game_models.dart';
+import '../game/game_models.dart';
 
 class LocalPackQuestion {
   LocalPackQuestion({

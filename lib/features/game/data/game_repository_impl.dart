@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../game_models.dart';
 import '../game_service.dart';
 import 'game_dtos.dart';
@@ -15,6 +17,44 @@ class GameRepositoryImpl implements GameRepository {
       (snapshot) => snapshot.docs
           .map((doc) => RoomDto.fromSnapshot(doc).toDomain())
           .toList(),
+    );
+  }
+
+  @override
+  Stream<List<RoomModel>> watchRoomsLimited({required int limit}) {
+    return _service
+        .watchRoomsLimited(limit: limit)
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => RoomDto.fromSnapshot(doc).toDomain())
+              .toList(),
+        );
+  }
+
+  @override
+  Future<RoomsPageModel> fetchRoomsPage({
+    required int limit,
+    int? startAfterCreatedAtMs,
+  }) async {
+    final snapshot = await _service.fetchRoomsPage(
+      limit: limit,
+      startAfterCreatedAtMs: startAfterCreatedAtMs,
+    );
+    final docs = snapshot.docs;
+    final hasMore = docs.length > limit;
+    final selected = hasMore ? docs.take(limit).toList() : docs;
+    final rooms = selected
+        .map((doc) => RoomDto.fromSnapshot(doc).toDomain())
+        .toList();
+    final lastData = selected.isEmpty ? null : selected.last.data();
+    final lastCreatedAt = lastData?['createdAt'];
+    final nextCursorCreatedAtMs = hasMore && lastCreatedAt is Timestamp
+        ? lastCreatedAt.millisecondsSinceEpoch
+        : null;
+    return RoomsPageModel(
+      rooms: rooms,
+      nextCursorCreatedAtMs: nextCursorCreatedAtMs,
+      hasMore: hasMore && nextCursorCreatedAtMs != null,
     );
   }
 
@@ -92,6 +132,12 @@ class GameRepositoryImpl implements GameRepository {
     required String roomId,
     required QuestionDraft draft,
   }) => _service.addQuestion(roomId: roomId, draft: draft);
+
+  @override
+  Future<void> addQuestions({
+    required String roomId,
+    required List<QuestionDraft> drafts,
+  }) => _service.addQuestions(roomId: roomId, drafts: drafts);
 
   @override
   Future<void> setPlayerRole({

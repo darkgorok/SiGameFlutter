@@ -36,7 +36,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
   @override
   Widget build(BuildContext context) {
     final myUid = FirebaseAuth.instance.currentUser!.uid;
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(playerActionsProvider);
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final eventsAsync = ref.watch(eventsStreamProvider(widget.roomId));
     return Column(

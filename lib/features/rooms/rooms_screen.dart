@@ -19,8 +19,8 @@ class RoomsScreen extends ConsumerStatefulWidget {
 class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   @override
   Widget build(BuildContext context) {
-    final actions = ref.read(gameActionsControllerProvider.notifier);
-    final roomsAsync = ref.watch(roomsStreamProvider);
+    final actions = ref.read(roomActionsProvider);
+    final roomsAsync = ref.watch(roomsPaginationControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.roomsTitle)),
@@ -29,54 +29,75 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
         error: (error, stackTrace) => Center(
           child: Text(context.l10n.errorWithDetails(error.toString())),
         ),
-        data: (rooms) {
-          if (rooms.isEmpty) {
+        data: (roomsState) {
+          if (roomsState.rooms.isEmpty) {
             return Center(child: Text(context.l10n.noRoomsYet));
           }
-          return ListView.builder(
-            itemCount: rooms.length,
-            itemBuilder: (context, index) {
-              final room = rooms[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  title: Row(
-                    children: [
-                      Expanded(child: Text(room.name)),
-                      if (room.passwordProtected)
-                        const Icon(Icons.lock_outline, size: 18),
-                    ],
+          return ListView(
+            children: [
+              ...roomsState.rooms.map((room) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                  subtitle: Text(
-                    context.l10n.roomStatusPhase(
-                      room.status.localizedLabel(context),
-                      room.phase.localizedLabel(context),
+                  child: ListTile(
+                    title: Row(
+                      children: [
+                        Expanded(child: Text(room.name)),
+                        if (room.passwordProtected)
+                          const Icon(Icons.lock_outline, size: 18),
+                      ],
+                    ),
+                    subtitle: Text(
+                      context.l10n.roomStatusPhase(
+                        room.status.localizedLabel(context),
+                        room.phase.localizedLabel(context),
+                      ),
+                    ),
+                    trailing: Wrap(
+                      spacing: 8,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => _joinAs(
+                            actions: actions,
+                            room: room,
+                            role: PlayerRole.player,
+                          ),
+                          child: Text(context.l10n.player),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => _joinAs(
+                            actions: actions,
+                            room: room,
+                            role: PlayerRole.spectator,
+                          ),
+                          child: Text(context.l10n.spectator),
+                        ),
+                      ],
                     ),
                   ),
-                  trailing: Wrap(
-                    spacing: 8,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => _joinAs(
-                          actions: actions,
-                          room: room,
-                          role: PlayerRole.player,
-                        ),
-                        child: Text(context.l10n.player),
-                      ),
-                      OutlinedButton(
-                        onPressed: () => _joinAs(
-                          actions: actions,
-                          room: room,
-                          role: PlayerRole.spectator,
-                        ),
-                        child: Text(context.l10n.spectator),
-                      ),
-                    ],
+                );
+              }),
+              if (roomsState.hasMore || roomsState.loadingMore)
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Center(
+                    child: OutlinedButton(
+                      onPressed: roomsState.loadingMore
+                          ? null
+                          : () => ref
+                                .read(
+                                  roomsPaginationControllerProvider.notifier,
+                                )
+                                .loadMore(),
+                      child: roomsState.loadingMore
+                          ? const LoadingInline()
+                          : Text(context.l10n.continueButton),
+                    ),
                   ),
                 ),
-              );
-            },
+            ],
           );
         },
       ),
@@ -84,7 +105,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   }
 
   Future<void> _joinAs({
-    required GameActionsController actions,
+    required RoomActions actions,
     required RoomModel room,
     required PlayerRole role,
   }) async {

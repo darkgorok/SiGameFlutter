@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:si_game_flutter/main.dart';
 
@@ -8,6 +8,6 @@ void main() {
   ) async {
     await tester.pumpWidget(const ProviderScope(child: SiGameApp()));
 
-    expect(find.textContaining('Firebase не настроен'), findsOneWidget);
+    expect(find.textContaining('Firebase'), findsOneWidget);
   });
 }

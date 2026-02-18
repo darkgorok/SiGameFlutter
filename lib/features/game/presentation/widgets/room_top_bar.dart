@@ -29,7 +29,8 @@ class RoomTopBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final roomActions = ref.read(roomActionsProvider);
+    final questionActions = ref.read(questionActionsProvider);
     return Card(
       margin: const EdgeInsets.all(8),
       child: Padding(
@@ -46,7 +47,7 @@ class RoomTopBar extends ConsumerWidget {
               CountdownLabel(
                 deadlineMs: room.timerDeadlineAtMs!,
                 onExpired: isHost
-                    ? () => actions.handleTimerExpiration(roomId)
+                    ? () => questionActions.handleTimerExpiration(roomId)
                     : null,
               ),
             const SizedBox(height: 8),
@@ -55,13 +56,17 @@ class RoomTopBar extends ConsumerWidget {
               runSpacing: 8,
               children: [
                 ElevatedButton(
-                  onPressed: isHost ? () => actions.startGame(roomId) : null,
+                  onPressed: isHost
+                      ? () => roomActions.startGame(roomId)
+                      : null,
                   child: Text(context.l10n.start),
                 ),
                 ElevatedButton(
                   onPressed: room.status == GameStatus.paused
-                      ? (canResume ? () => actions.resumeGame(roomId) : null)
-                      : (canPause ? () => actions.pauseGame(roomId) : null),
+                      ? (canResume
+                            ? () => roomActions.resumeGame(roomId)
+                            : null)
+                      : (canPause ? () => roomActions.pauseGame(roomId) : null),
                   child: Text(
                     room.status == GameStatus.paused
                         ? context.l10n.unpause
@@ -70,13 +75,13 @@ class RoomTopBar extends ConsumerWidget {
                 ),
                 ElevatedButton(
                   onPressed: isHost
-                      ? () => actions.advanceToRound2(roomId)
+                      ? () => roomActions.advanceToRound2(roomId)
                       : null,
                   child: Text(context.l10n.round2),
                 ),
                 ElevatedButton(
                   onPressed: isHost
-                      ? () => actions.startFinalRound(roomId)
+                      ? () => roomActions.startFinalRound(roomId)
                       : null,
                   child: Text(context.l10n.finalRoundButton),
                 ),

@@ -39,6 +39,13 @@ class GameActionUseCases {
     return _repository.addQuestion(roomId: roomId, draft: draft);
   }
 
+  Future<void> addQuestions({
+    required String roomId,
+    required List<QuestionDraft> drafts,
+  }) {
+    return _repository.addQuestions(roomId: roomId, drafts: drafts);
+  }
+
   Future<void> setPlayerRole({
     required String roomId,
     required String targetUid,
@@ -145,6 +152,7 @@ class GameActionUseCases {
   Future<void> submitAnswer(String roomId) {
     return _repository.submitAnswer(roomId);
   }
+
   Future<void> submitNumericAnswer({
     required String roomId,
     required num value,

@@ -7,9 +7,7 @@ class LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: const Center(child: LoadingPane()),
-    );
+    return Scaffold(body: const Center(child: LoadingPane()));
   }
 }
 

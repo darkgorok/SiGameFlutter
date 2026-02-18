@@ -1,17 +1,15 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/l10n.dart';
 import '../../core/widgets/app_popup.dart';
 import '../game/game_localizations.dart';
 import '../game/game_models.dart';
 import 'local_pack.dart';
+import 'pack_draft_store.dart';
 import 'pack_file.dart';
 
 class PackEditorScreen extends StatefulWidget {
@@ -37,6 +35,10 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
   static const _maxAliasesChars = 240;
   static const _maxPackNameChars = 80;
   static const _maxMediaDataUrlChars = 6 * 1024 * 1024;
+  static const _draftStore = PackDraftStore(
+    prefsKey: _draftPrefsKey,
+    fileName: _draftFileName,
+  );
 
   final _packNameCtrl = TextEditingController();
   final _themeCtrl = TextEditingController();
@@ -725,51 +727,16 @@ class _PackEditorScreenState extends State<PackEditorScreen> {
     });
   }
 
-  Future<File?> _draftFile() async {
-    if (kIsWeb) {
-      return null;
-    }
-    final directory = await getApplicationSupportDirectory();
-    return File('${directory.path}${Platform.pathSeparator}$_draftFileName');
-  }
-
   Future<String?> _loadDraftRaw() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_draftPrefsKey);
-    }
-    final file = await _draftFile();
-    if (file == null || !await file.exists()) {
-      return null;
-    }
-    return file.readAsString();
+    return _draftStore.loadRaw();
   }
 
   Future<void> _saveDraftRaw(String raw) async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_draftPrefsKey, raw);
-      return;
-    }
-    final file = await _draftFile();
-    if (file == null) {
-      return;
-    }
-    await file.parent.create(recursive: true);
-    await file.writeAsString(raw, flush: true);
+    await _draftStore.saveRaw(raw);
   }
 
   Future<void> _clearDraftRaw() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_draftPrefsKey);
-      return;
-    }
-    final file = await _draftFile();
-    if (file == null || !await file.exists()) {
-      return;
-    }
-    await file.delete();
+    await _draftStore.clearRaw();
   }
 
   Future<void> _restoreDraftIfAny() async {

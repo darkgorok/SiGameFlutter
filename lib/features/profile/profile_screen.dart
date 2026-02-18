@@ -1,9 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../app/presentation/loading_screen.dart';
 import '../../core/l10n.dart';
 import '../../core/providers.dart';
@@ -31,18 +28,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    final profileAsync = ref.watch(profileStreamProvider(uid));
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.profileTitle)),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('profiles')
-            .doc(uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: LoadingPane());
-          }
-          final data = snapshot.data?.data() ?? {};
+      body: profileAsync.when(
+        loading: () => const Center(child: LoadingPane()),
+        error: (error, stackTrace) => Center(
+          child: Text(context.l10n.errorWithDetails(error.toString())),
+        ),
+        data: (data) {
           if (!_loaded) {
             _loaded = true;
             _nickCtrl.text = data['nickname'] as String? ?? '';
@@ -71,6 +65,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () async {
+                        final l10n = context.l10n;
                         await ref
                             .read(gameRepositoryProvider)
                             .upsertProfile(
@@ -78,7 +73,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               nickname: _nickCtrl.text.trim(),
                               avatarUrl: _avatarCtrl.text.trim(),
                             );
-                        final prefs = await SharedPreferences.getInstance();
+                        final prefs = await ref.read(
+                          sharedPreferencesProvider.future,
+                        );
                         await prefs.setString(
                           'profile_nickname',
                           _nickCtrl.text.trim(),
@@ -89,8 +86,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         );
                         if (!mounted) return;
                         showAppPopup(
-                          context,
-                          message: context.l10n.profileSaved,
+                          this.context,
+                          message: l10n.profileSaved,
                           type: AppPopupType.success,
                         );
                       },

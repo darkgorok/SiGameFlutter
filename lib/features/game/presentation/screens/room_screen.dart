@@ -37,16 +37,11 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
   void initState() {
     super.initState();
     _loadAnswerHotkey();
-    ref
-        .read(gameActionsControllerProvider.notifier)
-        .joinRoom(widget.roomId, role: widget.role);
   }
 
   @override
   void dispose() {
-    ref
-        .read(gameActionsControllerProvider.notifier)
-        .markDisconnected(widget.roomId);
+    ref.read(roomActionsProvider).markDisconnected(widget.roomId);
     super.dispose();
   }
 
@@ -102,7 +97,8 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
               final canPause = myRole != PlayerRole.spectator || isHost;
               final effectiveCleanView =
                   _cleanView || myRole == PlayerRole.spectator;
-              final actions = ref.read(gameActionsControllerProvider.notifier);
+              final roomActions = ref.read(roomActionsProvider);
+              final questionActions = ref.read(questionActionsProvider);
               final shortcuts = <ShortcutActivator, Intent>{
                 const SingleActivator(LogicalKeyboardKey.keyS):
                     const _HostIntent(_HostAction.start),
@@ -127,19 +123,19 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                               if (!isHost) return null;
                               switch (intent.action) {
                                 case _HostAction.start:
-                                  actions.startGame(widget.roomId);
+                                  roomActions.startGame(widget.roomId);
                                 case _HostAction.pauseToggle:
                                   if (room.status == GameStatus.paused) {
                                     if (canResume) {
-                                      actions.resumeGame(widget.roomId);
+                                      roomActions.resumeGame(widget.roomId);
                                     }
                                   } else if (canPause) {
-                                    actions.pauseGame(widget.roomId);
+                                    roomActions.pauseGame(widget.roomId);
                                   }
                                 case _HostAction.finalRound:
-                                  actions.startFinalRound(widget.roomId);
+                                  roomActions.startFinalRound(widget.roomId);
                                 case _HostAction.round2:
-                                  actions.advanceToRound2(widget.roomId);
+                                  roomActions.advanceToRound2(widget.roomId);
                               }
                               return null;
                             },
@@ -155,7 +151,7 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                               }
                               if (GameUiPermissions.canBuzz(room, uid) &&
                                   myRole != PlayerRole.spectator) {
-                                actions.buzz(widget.roomId);
+                                questionActions.buzz(widget.roomId);
                               }
                               return null;
                             },

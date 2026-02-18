@@ -8,6 +8,17 @@ class GameReadUseCases {
 
   Stream<List<RoomModel>> watchRooms() => _repository.watchRooms();
 
+  Stream<List<RoomModel>> watchRoomsLimited({required int limit}) =>
+      _repository.watchRoomsLimited(limit: limit);
+
+  Future<RoomsPageModel> fetchRoomsPage({
+    required int limit,
+    int? startAfterCreatedAtMs,
+  }) => _repository.fetchRoomsPage(
+    limit: limit,
+    startAfterCreatedAtMs: startAfterCreatedAtMs,
+  );
+
   Stream<RoomModel?> watchRoom(String roomId) => _repository.watchRoom(roomId);
 
   Stream<List<PlayerModel>> watchPlayers(String roomId) =>

@@ -441,3 +441,15 @@ class LeaderboardEntry {
   final int wins;
   final int totalScore;
 }
+
+class RoomsPageModel {
+  RoomsPageModel({
+    required this.rooms,
+    required this.nextCursorCreatedAtMs,
+    required this.hasMore,
+  });
+
+  final List<RoomModel> rooms;
+  final int? nextCursorCreatedAtMs;
+  final bool hasMore;
+}

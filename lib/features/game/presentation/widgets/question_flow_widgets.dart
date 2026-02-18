@@ -25,26 +25,19 @@ class QuestionBoard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final questionsAsync = ref.watch(questionsStreamProvider(roomId));
-    final actions = ref.read(gameActionsControllerProvider.notifier);
-    return questionsAsync.when(
+    final groupedAsync = ref.watch(
+      groupedQuestionsProvider(
+        RoomQuestionsArgs(roomId: roomId, round: room.currentRound),
+      ),
+    );
+    final actions = ref.read(questionActionsProvider);
+    return groupedAsync.when(
       loading: () => const Center(child: LoadingPane()),
       error: (error, stackTrace) =>
           Center(child: Text(context.l10n.errorWithDetails(error.toString()))),
-      data: (allQuestions) {
-        final questions = allQuestions
-            .where((q) => q.round == room.currentRound)
-            .toList();
-        if (questions.isEmpty) {
+      data: (board) {
+        if (board.themes.isEmpty) {
           return Center(child: Text(context.l10n.noQuestionsCurrentRound));
-        }
-        final grouped = <String, List<QuestionModel>>{};
-        for (final q in questions) {
-          grouped.putIfAbsent(q.theme, () => []).add(q);
-        }
-        final themes = grouped.keys.toList()..sort();
-        for (final list in grouped.values) {
-          list.sort((a, b) => a.cost.compareTo(b.cost));
         }
 
         return ListView(
@@ -52,8 +45,8 @@ class QuestionBoard extends ConsumerWidget {
           children: [
             if (room.activeQuestion != null)
               ActiveQuestionPanel(room: room, roomId: roomId, myRole: myRole),
-            ...themes.map((theme) {
-              final cells = grouped[theme]!;
+            ...board.themes.map((theme) {
+              final cells = board.grouped[theme]!;
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(10),
@@ -117,7 +110,7 @@ class ActiveQuestionPanel extends ConsumerWidget {
     }
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final isHost = uid == room.hostUid;
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(questionActionsProvider);
 
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -270,7 +263,7 @@ class _NumericAnswerPanelState extends ConsumerState<NumericAnswerPanel> {
   @override
   Widget build(BuildContext context) {
     final canAnswer = widget.myRole != PlayerRole.spectator;
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(questionActionsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -326,7 +319,7 @@ class CatTargetingPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playersAsync = ref.watch(playersStreamProvider(roomId));
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(questionActionsProvider);
     final uid = FirebaseAuth.instance.currentUser!.uid;
     if (uid != room.chooserUid && uid != room.hostUid) {
       return Text(context.l10n.waitingCatSelection);
@@ -379,7 +372,7 @@ class _WagerPanelState extends ConsumerState<WagerPanel> {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final room = widget.room;
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(questionActionsProvider);
     final canSetWager = uid == room.chooserUid || uid == room.hostUid;
 
     return Row(
@@ -414,7 +407,7 @@ class HostJudgePanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final actions = ref.read(gameActionsControllerProvider.notifier);
+    final actions = ref.read(questionActionsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

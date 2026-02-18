@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/errors/app_exception.dart';
+import '../../core/shared_prefs_cache.dart';
+import 'data/game_commands.dart';
 import 'game_models.dart';
 
 class GameService {
@@ -15,12 +17,36 @@ class GameService {
   final FirebaseFirestore firestore;
   final FirebaseAuth auth;
   final FirebaseFunctions functions;
+  static const _roomsQueryLimit = 100;
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchRooms() {
+    return watchRoomsLimited(limit: _roomsQueryLimit);
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchRoomsLimited({
+    required int limit,
+  }) {
     return firestore
         .collection('rooms')
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots();
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> fetchRoomsPage({
+    required int limit,
+    int? startAfterCreatedAtMs,
+  }) async {
+    var query = firestore
+        .collection('rooms')
+        .orderBy('createdAt', descending: true)
+        .limit(limit + 1);
+    if (startAfterCreatedAtMs != null) {
+      query = query.startAfter([
+        Timestamp.fromMillisecondsSinceEpoch(startAfterCreatedAtMs),
+      ]);
+    }
+    return query.get();
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> watchRoom(String roomId) {
@@ -63,7 +89,7 @@ class GameService {
     required String avatarUrl,
   }) async {
     await _callCommand(
-      command: 'upsert_profile',
+      command: GameCommand.upsertProfile,
       data: {'uid': uid, 'nickname': nickname, 'avatarUrl': avatarUrl},
     );
   }
@@ -74,7 +100,7 @@ class GameService {
   }) async {
     final normalizedPassword = password?.trim() ?? '';
     final data = await _callCommand(
-      command: 'create_room',
+      command: GameCommand.createRoom,
       data: {
         'roomName': roomName,
         if (normalizedPassword.isNotEmpty) 'password': normalizedPassword,
@@ -82,7 +108,10 @@ class GameService {
     );
     final roomId = data['roomId'] as String?;
     if (roomId == null || roomId.isEmpty) {
-      throw Exception('Server did not return roomId');
+      throw const AppException(
+        message: 'Server did not return roomId',
+        code: 'invalid_response',
+      );
     }
     await _storeLastRoom(roomId, role: PlayerRole.host);
     return roomId;
@@ -95,7 +124,7 @@ class GameService {
   }) async {
     final normalizedPassword = password?.trim() ?? '';
     await _callCommand(
-      command: 'join_room',
+      command: GameCommand.joinRoom,
       roomId: roomId,
       data: {
         'role': role.value,
@@ -106,7 +135,7 @@ class GameService {
   }
 
   Future<void> markDisconnected(String roomId) async {
-    await _callCommand(command: 'mark_disconnected', roomId: roomId);
+    await _callCommand(command: GameCommand.markDisconnected, roomId: roomId);
   }
 
   Future<void> addQuestion({
@@ -114,7 +143,7 @@ class GameService {
     required QuestionDraft draft,
   }) async {
     await _callCommand(
-      command: 'add_question',
+      command: GameCommand.addQuestion,
       roomId: roomId,
       data: {
         'theme': draft.theme,
@@ -136,7 +165,7 @@ class GameService {
     required PlayerRole role,
   }) async {
     await _callCommand(
-      command: 'set_player_role',
+      command: GameCommand.setPlayerRole,
       roomId: roomId,
       data: {'targetUid': targetUid, 'role': role.value},
     );
@@ -147,7 +176,7 @@ class GameService {
     required String targetUid,
   }) async {
     await _callCommand(
-      command: 'kick_player',
+      command: GameCommand.kickPlayer,
       roomId: roomId,
       data: {'targetUid': targetUid},
     );
@@ -159,7 +188,7 @@ class GameService {
     String reason = '',
   }) async {
     await _callCommand(
-      command: 'ban_player',
+      command: GameCommand.banPlayer,
       roomId: roomId,
       data: {'targetUid': targetUid, 'reason': reason},
     );
@@ -170,7 +199,7 @@ class GameService {
     required String targetUid,
   }) async {
     await _callCommand(
-      command: 'unban_player',
+      command: GameCommand.unbanPlayer,
       roomId: roomId,
       data: {'targetUid': targetUid},
     );
@@ -181,7 +210,7 @@ class GameService {
     required String name,
   }) async {
     final data = await _callCommand(
-      command: 'save_pack',
+      command: GameCommand.savePack,
       roomId: roomId,
       data: {'name': name},
     );
@@ -194,7 +223,7 @@ class GameService {
   }
 
   Future<List<PackSummary>> listPacks() async {
-    final data = await _callCommand(command: 'list_packs');
+    final data = await _callCommand(command: GameCommand.listPacks);
     final list = (data['packs'] as List?) ?? const [];
     return list
         .whereType<Map>()
@@ -214,14 +243,14 @@ class GameService {
     required String packId,
   }) async {
     await _callCommand(
-      command: 'apply_pack',
+      command: GameCommand.applyPack,
       roomId: roomId,
       data: {'packId': packId},
     );
   }
 
   Future<List<LeaderboardEntry>> getLeaderboard() async {
-    final data = await _callCommand(command: 'get_leaderboard');
+    final data = await _callCommand(command: GameCommand.getLeaderboard);
     final list = (data['leaderboard'] as List?) ?? const [];
     return list
         .whereType<Map>()
@@ -238,15 +267,15 @@ class GameService {
   }
 
   Future<void> startGame(String roomId) async {
-    await _callCommand(command: 'start_game', roomId: roomId);
+    await _callCommand(command: GameCommand.startGame, roomId: roomId);
   }
 
   Future<void> advanceToRound2(String roomId) async {
-    await _callCommand(command: 'advance_round2', roomId: roomId);
+    await _callCommand(command: GameCommand.advanceRound2, roomId: roomId);
   }
 
   Future<void> startFinalRound(String roomId) async {
-    await _callCommand(command: 'start_final_round', roomId: roomId);
+    await _callCommand(command: GameCommand.startFinalRound, roomId: roomId);
   }
 
   Future<void> setFinalQuestion({
@@ -256,18 +285,18 @@ class GameService {
     required String answer,
   }) async {
     await _callCommand(
-      command: 'set_final_question',
+      command: GameCommand.setFinalQuestion,
       roomId: roomId,
       data: {'theme': theme, 'question': question, 'answer': answer},
     );
   }
 
   Future<void> openFinalWagers(String roomId) async {
-    await _callCommand(command: 'open_final_wagers', roomId: roomId);
+    await _callCommand(command: GameCommand.openFinalWagers, roomId: roomId);
   }
 
   Future<void> openFinalAnswers(String roomId) async {
-    await _callCommand(command: 'open_final_answers', roomId: roomId);
+    await _callCommand(command: GameCommand.openFinalAnswers, roomId: roomId);
   }
 
   Future<void> submitFinalWager({
@@ -275,7 +304,7 @@ class GameService {
     required int wager,
   }) async {
     await _callCommand(
-      command: 'submit_final_wager',
+      command: GameCommand.submitFinalWager,
       roomId: roomId,
       data: {'wager': wager},
     );
@@ -287,14 +316,14 @@ class GameService {
     required FinalResult result,
   }) async {
     await _callCommand(
-      command: 'set_final_player_result',
+      command: GameCommand.setFinalPlayerResult,
       roomId: roomId,
       data: {'targetUid': targetUid, 'result': result.value},
     );
   }
 
   Future<void> revealFinal(String roomId) async {
-    await _callCommand(command: 'reveal_final', roomId: roomId);
+    await _callCommand(command: GameCommand.revealFinal, roomId: roomId);
   }
 
   Future<void> pickQuestion({
@@ -302,19 +331,19 @@ class GameService {
     required String questionId,
   }) async {
     await _callCommand(
-      command: 'pick_question',
+      command: GameCommand.pickQuestion,
       roomId: roomId,
       data: {'questionId': questionId},
     );
   }
 
   Future<void> openBuzzing(String roomId) async {
-    await _callCommand(command: 'open_buzzing', roomId: roomId);
+    await _callCommand(command: GameCommand.openBuzzing, roomId: roomId);
   }
 
   Future<void> selectCatTarget(String roomId, String targetUid) async {
     await _callCommand(
-      command: 'select_cat_target',
+      command: GameCommand.selectCatTarget,
       roomId: roomId,
       data: {'targetUid': targetUid},
     );
@@ -325,18 +354,18 @@ class GameService {
     required int wager,
   }) async {
     await _callCommand(
-      command: 'set_wager_and_open',
+      command: GameCommand.setWagerAndOpen,
       roomId: roomId,
       data: {'wager': wager},
     );
   }
 
   Future<void> buzz(String roomId) async {
-    await _callCommand(command: 'buzz', roomId: roomId);
+    await _callCommand(command: GameCommand.buzz, roomId: roomId);
   }
 
   Future<void> submitAnswer(String roomId) async {
-    await _callCommand(command: 'submit_answer', roomId: roomId);
+    await _callCommand(command: GameCommand.submitAnswer, roomId: roomId);
   }
 
   Future<void> submitNumericAnswer({
@@ -344,10 +373,46 @@ class GameService {
     required num value,
   }) async {
     await _callCommand(
-      command: 'submit_numeric_answer',
+      command: GameCommand.submitNumericAnswer,
       roomId: roomId,
       data: {'value': value},
     );
+  }
+
+  Future<void> addQuestions({
+    required String roomId,
+    required List<QuestionDraft> drafts,
+  }) async {
+    if (drafts.isEmpty) {
+      return;
+    }
+    for (var i = 0; i < drafts.length; i += 500) {
+      final chunk = drafts.sublist(
+        i,
+        (i + 500) > drafts.length ? drafts.length : i + 500,
+      );
+      await _callCommand(
+        command: GameCommand.addQuestionsBulk,
+        roomId: roomId,
+        data: {
+          'questions': chunk
+              .map(
+                (draft) => {
+                  'theme': draft.theme,
+                  'text': draft.text,
+                  'answer': draft.answer,
+                  'cost': draft.cost,
+                  'round': draft.round,
+                  'type': draft.type.value,
+                  'mediaUrl': draft.mediaUrl,
+                  'mediaType': draft.mediaType.value,
+                  'aliases': draft.aliases,
+                },
+              )
+              .toList(),
+        },
+      );
+    }
   }
 
   Future<void> judgeAnswer({
@@ -355,7 +420,7 @@ class GameService {
     required bool correct,
   }) async {
     await _callCommand(
-      command: 'judge_answer',
+      command: GameCommand.judgeAnswer,
       roomId: roomId,
       data: {'correct': correct},
     );
@@ -367,32 +432,35 @@ class GameService {
     required int delta,
   }) async {
     await _callCommand(
-      command: 'apply_score',
+      command: GameCommand.applyScore,
       roomId: roomId,
       data: {'targetUid': targetUid, 'delta': delta},
     );
   }
 
   Future<void> pauseGame(String roomId) async {
-    await _callCommand(command: 'pause_game', roomId: roomId);
+    await _callCommand(command: GameCommand.pauseGame, roomId: roomId);
   }
 
   Future<void> resumeGame(String roomId) async {
-    await _callCommand(command: 'resume_game', roomId: roomId);
+    await _callCommand(command: GameCommand.resumeGame, roomId: roomId);
   }
 
   Future<void> handleTimerExpiration(String roomId) async {
-    await _callCommand(command: 'handle_timer_expiration', roomId: roomId);
+    await _callCommand(
+      command: GameCommand.handleTimerExpiration,
+      roomId: roomId,
+    );
   }
 
   Future<Map<String, dynamic>> _callCommand({
-    required String command,
+    required GameCommand command,
     String? roomId,
     Map<String, dynamic>? data,
   }) async {
     final callable = functions.httpsCallable('gameCommand');
     try {
-      final payload = <String, dynamic>{'command': command};
+      final payload = <String, dynamic>{'command': command.value};
       if (roomId != null) payload['roomId'] = roomId;
       if (data != null) payload['data'] = data;
       final response = await callable.call(payload);
@@ -402,12 +470,12 @@ class GameService {
       }
       return <String, dynamic>{};
     } on FirebaseFunctionsException catch (e) {
-      throw Exception(e.message ?? 'Server error');
+      throw AppException(message: e.message ?? 'Server error', code: e.code);
     }
   }
 
   Future<void> _storeLastRoom(String roomId, {required PlayerRole role}) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await getSharedPreferencesCached();
     await prefs.setString('last_room_id', roomId);
     await prefs.setString('last_room_role', role.value);
   }

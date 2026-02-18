@@ -30,6 +30,15 @@ abstract class GameRepository {
     required String roomId,
     required QuestionDraft draft,
   });
+  Future<void> updateQuestion({
+    required String roomId,
+    required String questionId,
+    required QuestionDraft draft,
+  });
+  Future<void> deleteQuestion({
+    required String roomId,
+    required String questionId,
+  });
   Future<void> addQuestions({
     required String roomId,
     required List<QuestionDraft> drafts,
@@ -59,9 +68,21 @@ abstract class GameRepository {
     required String question,
     required String answer,
   });
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  });
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  });
   Future<void> openFinalWagers(String roomId);
   Future<void> openFinalAnswers(String roomId);
   Future<void> submitFinalWager({required String roomId, required int wager});
+  Future<void> submitFinalAnswer({
+    required String roomId,
+    required String answer,
+  });
   Future<void> setFinalPlayerResult({
     required String roomId,
     required String targetUid,

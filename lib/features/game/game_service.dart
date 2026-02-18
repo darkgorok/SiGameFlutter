@@ -159,6 +159,40 @@ class GameService {
     );
   }
 
+  Future<void> updateQuestion({
+    required String roomId,
+    required String questionId,
+    required QuestionDraft draft,
+  }) async {
+    await _callCommand(
+      command: GameCommand.updateQuestion,
+      roomId: roomId,
+      data: {
+        'questionId': questionId,
+        'theme': draft.theme,
+        'text': draft.text,
+        'answer': draft.answer,
+        'cost': draft.cost,
+        'round': draft.round,
+        'type': draft.type.value,
+        'mediaUrl': draft.mediaUrl,
+        'mediaType': draft.mediaType.value,
+        'aliases': draft.aliases,
+      },
+    );
+  }
+
+  Future<void> deleteQuestion({
+    required String roomId,
+    required String questionId,
+  }) async {
+    await _callCommand(
+      command: GameCommand.deleteQuestion,
+      roomId: roomId,
+      data: {'questionId': questionId},
+    );
+  }
+
   Future<void> setPlayerRole({
     required String roomId,
     required String targetUid,
@@ -291,6 +325,28 @@ class GameService {
     );
   }
 
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  }) async {
+    await _callCommand(
+      command: GameCommand.selectFinalThemeDeleter,
+      roomId: roomId,
+      data: {'targetUid': targetUid},
+    );
+  }
+
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  }) async {
+    await _callCommand(
+      command: GameCommand.deleteFinalTheme,
+      roomId: roomId,
+      data: {'theme': theme},
+    );
+  }
+
   Future<void> openFinalWagers(String roomId) async {
     await _callCommand(command: GameCommand.openFinalWagers, roomId: roomId);
   }
@@ -307,6 +363,17 @@ class GameService {
       command: GameCommand.submitFinalWager,
       roomId: roomId,
       data: {'wager': wager},
+    );
+  }
+
+  Future<void> submitFinalAnswer({
+    required String roomId,
+    required String answer,
+  }) async {
+    await _callCommand(
+      command: GameCommand.submitFinalAnswer,
+      roomId: roomId,
+      data: {'answer': answer},
     );
   }
 

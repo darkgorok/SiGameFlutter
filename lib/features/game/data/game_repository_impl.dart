@@ -134,6 +134,23 @@ class GameRepositoryImpl implements GameRepository {
   }) => _service.addQuestion(roomId: roomId, draft: draft);
 
   @override
+  Future<void> updateQuestion({
+    required String roomId,
+    required String questionId,
+    required QuestionDraft draft,
+  }) => _service.updateQuestion(
+    roomId: roomId,
+    questionId: questionId,
+    draft: draft,
+  );
+
+  @override
+  Future<void> deleteQuestion({
+    required String roomId,
+    required String questionId,
+  }) => _service.deleteQuestion(roomId: roomId, questionId: questionId);
+
+  @override
   Future<void> addQuestions({
     required String roomId,
     required List<QuestionDraft> drafts,
@@ -205,6 +222,18 @@ class GameRepositoryImpl implements GameRepository {
   );
 
   @override
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  }) => _service.selectFinalThemeDeleter(roomId: roomId, targetUid: targetUid);
+
+  @override
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  }) => _service.deleteFinalTheme(roomId: roomId, theme: theme);
+
+  @override
   Future<void> openFinalWagers(String roomId) =>
       _service.openFinalWagers(roomId);
 
@@ -215,6 +244,12 @@ class GameRepositoryImpl implements GameRepository {
   @override
   Future<void> submitFinalWager({required String roomId, required int wager}) =>
       _service.submitFinalWager(roomId: roomId, wager: wager);
+
+  @override
+  Future<void> submitFinalAnswer({
+    required String roomId,
+    required String answer,
+  }) => _service.submitFinalAnswer(roomId: roomId, answer: answer);
 
   @override
   Future<void> setFinalPlayerResult({

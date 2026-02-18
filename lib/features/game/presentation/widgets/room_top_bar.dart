@@ -80,7 +80,9 @@ class RoomTopBar extends ConsumerWidget {
                   onPressed: isHost
                       ? () => roomActions.advanceToRound2(roomId)
                       : null,
-                  child: Text(context.l10n.round2),
+                  child: Text(
+                    '${context.l10n.roundLabel} ${room.currentRound + 1}',
+                  ),
                 ),
                 ElevatedButton(
                   key: const ValueKey('room_start_final_round_button'),

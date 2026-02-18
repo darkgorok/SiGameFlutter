@@ -31,6 +31,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
   int _round = 1;
   QuestionType _type = QuestionType.normal;
   QuestionMediaType _mediaType = QuestionMediaType.none;
+  String? _editingQuestionId;
 
   @override
   void didChangeDependencies() {
@@ -56,6 +57,21 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
   Widget build(BuildContext context) {
     final actions = ref.read(gameActionsControllerProvider.notifier);
     final questionsAsync = ref.watch(questionsStreamProvider(widget.roomId));
+    final roundOptions = questionsAsync.maybeWhen(
+      data: (questions) {
+        final rounds = questions
+            .map((q) => q.round)
+            .where((r) => r > 0)
+            .toSet();
+        rounds.add(1);
+        rounds.add(_round);
+        final maxRound = rounds.fold<int>(1, (max, v) => v > max ? v : max);
+        rounds.add(maxRound + 1);
+        final list = rounds.toList()..sort();
+        return list;
+      },
+      orElse: () => <int>[1, _round, _round + 1],
+    );
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.roomEditorTitle)),
       body: Padding(
@@ -119,16 +135,14 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                 DropdownButton<int>(
                   key: const ValueKey('room_editor_round_dropdown'),
                   value: _round,
-                  items: [
-                    DropdownMenuItem(
-                      value: 1,
-                      child: Text(context.l10n.round1),
-                    ),
-                    DropdownMenuItem(
-                      value: 2,
-                      child: Text(context.l10n.round2),
-                    ),
-                  ],
+                  items: roundOptions
+                      .map(
+                        (round) => DropdownMenuItem(
+                          value: round,
+                          child: Text('${context.l10n.roundLabel} $round'),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (v) => setState(() => _round = v ?? 1),
                 ),
                 const SizedBox(width: 8),
@@ -171,34 +185,55 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                     key: const ValueKey('room_editor_add_question_button'),
                     onPressed: () async {
                       final l10n = context.l10n;
-                      await actions.addQuestion(
-                        roomId: widget.roomId,
-                        draft: QuestionDraft(
-                          theme: _themeCtrl.text.trim(),
-                          text: _textCtrl.text.trim(),
-                          answer: _answerCtrl.text.trim(),
-                          cost: int.tryParse(_costCtrl.text.trim()) ?? 100,
-                          round: _round,
-                          type: _type,
-                          mediaUrl: _mediaUrlCtrl.text.trim(),
-                          mediaType: _mediaType,
-                          aliases: _parseAliases(_aliasesCtrl.text),
-                        ),
+                      final draft = QuestionDraft(
+                        theme: _themeCtrl.text.trim(),
+                        text: _textCtrl.text.trim(),
+                        answer: _answerCtrl.text.trim(),
+                        cost: int.tryParse(_costCtrl.text.trim()) ?? 100,
+                        round: _round,
+                        type: _type,
+                        mediaUrl: _mediaUrlCtrl.text.trim(),
+                        mediaType: _mediaType,
+                        aliases: _parseAliases(_aliasesCtrl.text),
                       );
-                      _textCtrl.clear();
-                      _answerCtrl.clear();
-                      _aliasesCtrl.clear();
-                      _mediaUrlCtrl.clear();
+                      final editingQuestionId = _editingQuestionId;
+                      if (editingQuestionId == null) {
+                        await actions.addQuestion(
+                          roomId: widget.roomId,
+                          draft: draft,
+                        );
+                      } else {
+                        await actions.updateQuestion(
+                          roomId: widget.roomId,
+                          questionId: editingQuestionId,
+                          draft: draft,
+                        );
+                      }
+                      _clearForm();
                       if (!mounted) return;
                       showAppPopup(
                         this.context,
-                        message: l10n.questionAdded,
+                        message: editingQuestionId == null
+                            ? l10n.questionAdded
+                            : 'Question updated',
                         type: AppPopupType.success,
                       );
                     },
-                    child: Text(context.l10n.addQuestion),
+                    child: Text(
+                      _editingQuestionId == null
+                          ? context.l10n.addQuestion
+                          : context.l10n.apply,
+                    ),
                   ),
                 ),
+                if (_editingQuestionId != null) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    key: const ValueKey('room_editor_cancel_edit_button'),
+                    onPressed: () => setState(_clearForm),
+                    child: Text(context.l10n.cancel),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 8),
@@ -279,9 +314,88 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                           '${q.text}\n${q.mediaUrl.isEmpty ? '' : '${context.l10n.mediaLabel}: ${q.mediaType.localizedLabel(context)}'}',
                         ),
                         isThreeLine: q.mediaUrl.isNotEmpty,
-                        trailing: q.used
-                            ? const Icon(Icons.check, color: Colors.green)
-                            : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (q.used)
+                              const Icon(Icons.check, color: Colors.green),
+                            IconButton(
+                              key: ValueKey(
+                                'room_editor_edit_question_button_${q.id}',
+                              ),
+                              tooltip: 'Edit',
+                              onPressed: q.used
+                                  ? null
+                                  : () => setState(() {
+                                      _editingQuestionId = q.id;
+                                      _themeCtrl.text = q.theme;
+                                      _textCtrl.text = q.text;
+                                      _answerCtrl.text = q.answer;
+                                      _aliasesCtrl.text = q.aliases.join(', ');
+                                      _costCtrl.text = q.cost.toString();
+                                      _mediaUrlCtrl.text = q.mediaUrl;
+                                      _round = q.round;
+                                      _type = q.type;
+                                      _mediaType = q.mediaType;
+                                    }),
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
+                            IconButton(
+                              key: ValueKey(
+                                'room_editor_delete_question_button_${q.id}',
+                              ),
+                              tooltip: 'Delete',
+                              onPressed: q.used
+                                  ? null
+                                  : () async {
+                                      final l10n = this.context.l10n;
+                                      final shouldDelete =
+                                          await showDialog<bool>(
+                                            context: this.context,
+                                            builder: (ctx) => AlertDialog(
+                                              title: const Text(
+                                                'Delete question',
+                                              ),
+                                              content: Text(q.text),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(
+                                                    ctx,
+                                                  ).pop(false),
+                                                  child: Text(l10n.cancel),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.of(
+                                                    ctx,
+                                                  ).pop(true),
+                                                  child: const Text('Delete'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                      if (shouldDelete != true) {
+                                        return;
+                                      }
+                                      await actions.deleteQuestion(
+                                        roomId: widget.roomId,
+                                        questionId: q.id,
+                                      );
+                                      if (!mounted) {
+                                        return;
+                                      }
+                                      if (_editingQuestionId == q.id) {
+                                        setState(_clearForm);
+                                      }
+                                      showAppPopup(
+                                        this.context,
+                                        message: 'Question deleted',
+                                        type: AppPopupType.success,
+                                      );
+                                    },
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   );
@@ -369,6 +483,19 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
         .where((e) => e.isNotEmpty)
         .toSet()
         .toList();
+  }
+
+  void _clearForm() {
+    _editingQuestionId = null;
+    _themeCtrl.clear();
+    _textCtrl.clear();
+    _answerCtrl.clear();
+    _aliasesCtrl.clear();
+    _costCtrl.text = '100';
+    _mediaUrlCtrl.clear();
+    _round = 1;
+    _type = QuestionType.normal;
+    _mediaType = QuestionMediaType.none;
   }
 
   Future<void> _showPacksDialog(GameActionsController actions) async {

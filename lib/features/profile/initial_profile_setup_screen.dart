@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/presentation/loading_screen.dart';
 import '../../app/router.dart';
 import '../../core/avatar_data_url.dart';
+import '../../core/errors/app_exception.dart';
 import '../../core/l10n.dart';
 import '../../core/providers.dart';
 import '../../core/runtime_flags.dart';
@@ -201,7 +203,8 @@ class _InitialProfileSetupScreenState
       if (!e2eBypassProfileUpsert) {
         await ref
             .read(gameRepositoryProvider)
-            .upsertProfile(uid: uid, nickname: nickname, avatarUrl: avatarUrl);
+            .upsertProfile(uid: uid, nickname: nickname, avatarUrl: avatarUrl)
+            .timeout(const Duration(seconds: 20));
       }
 
       final prefs = await ref.read(sharedPreferencesProvider.future);
@@ -210,11 +213,22 @@ class _InitialProfileSetupScreenState
 
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    } on TimeoutException catch (error, stackTrace) {
+      if (!mounted) return;
+      showAppPopup(
+        context,
+        message: context.l10n.saveError(
+          'Request timed out. Please check network/emulator and try again.',
+        ),
+        type: AppPopupType.error,
+      );
+      debugPrint('profile save timeout: $error');
+      debugPrintStack(stackTrace: stackTrace);
     } catch (error, stackTrace) {
       if (!mounted) return;
       showAppPopup(
         context,
-        message: context.l10n.saveError(error.toString()),
+        message: context.l10n.saveError(_profileSaveErrorMessage(error)),
         type: AppPopupType.error,
       );
       debugPrint('profile save failed: $error');
@@ -224,5 +238,22 @@ class _InitialProfileSetupScreenState
         setState(() => _saving = false);
       }
     }
+  }
+
+  String _profileSaveErrorMessage(Object error) {
+    if (error is AppException) {
+      final message = error.message.toLowerCase();
+      if (error.code == 'already-exists' ||
+          (error.code == 'failed-precondition' &&
+              message.contains('nickname'))) {
+        return 'Nickname is already taken. Please choose another one.';
+      }
+      return error.message;
+    }
+    final raw = error.toString();
+    if (raw.toLowerCase().contains('nickname')) {
+      return 'Nickname is already taken. Please choose another one.';
+    }
+    return raw;
   }
 }

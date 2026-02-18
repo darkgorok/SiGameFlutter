@@ -9,6 +9,7 @@
     "lint": "echo 'no lint configured'",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
+    "test:unit": "node --test tests/*.unit.test.js",
     "test:emulator": "node --test tests/*.emulator.test.js",
     "test:emulator:local": "node scripts/run-emulator-tests.js"
   },

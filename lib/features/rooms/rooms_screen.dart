@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/presentation/loading_screen.dart';
 import '../../app/router.dart';
+import '../../core/errors/app_exception.dart';
 import '../../core/l10n.dart';
 import '../../core/widgets/app_popup.dart';
 import '../game/application/game_providers.dart';
@@ -128,12 +129,27 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final message = _joinRoomErrorMessage(e);
       showAppPopup(
         context,
-        message: context.l10n.errorWithDetails(e.toString()),
+        message: message,
         type: AppPopupType.error,
       );
     }
+  }
+
+  String _joinRoomErrorMessage(Object error) {
+    if (error is AppException) {
+      if (error.code == 'permission-denied') {
+        return 'Invalid room password.';
+      }
+      if (error.code == 'failed-precondition' &&
+          error.message.toLowerCase().contains('password')) {
+        return 'Room password is required.';
+      }
+      return error.message;
+    }
+    return error.toString();
   }
 
   Future<String?> _askRoomPassword(String roomName) async {

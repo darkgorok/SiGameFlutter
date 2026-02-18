@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/presentation/loading_screen.dart';
 import '../../core/avatar_data_url.dart';
+import '../../core/errors/app_exception.dart';
 import '../../core/hotkeys.dart';
 import '../../core/l10n.dart';
 import '../../core/providers.dart';
@@ -355,7 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (!mounted) return;
       showAppPopup(
         context,
-        message: context.l10n.saveError(error.toString()),
+        message: context.l10n.saveError(_profileSaveErrorMessage(error)),
         type: AppPopupType.error,
       );
       debugPrint('settings save failed: $error');
@@ -367,5 +368,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _scheduleAutoSave(const Duration(milliseconds: 200));
       }
     }
+  }
+
+  String _profileSaveErrorMessage(Object error) {
+    if (error is AppException) {
+      final message = error.message.toLowerCase();
+      if (error.code == 'already-exists' ||
+          (error.code == 'failed-precondition' &&
+              message.contains('nickname'))) {
+        return 'Nickname is already taken. Please choose another one.';
+      }
+      return error.message;
+    }
+    final raw = error.toString();
+    if (raw.toLowerCase().contains('nickname')) {
+      return 'Nickname is already taken. Please choose another one.';
+    }
+    return raw;
   }
 }

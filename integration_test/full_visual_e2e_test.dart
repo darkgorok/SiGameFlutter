@@ -312,12 +312,9 @@ Future<void> _playFullGameFlow(WidgetTester tester, String roomId) async {
 
   await _waitUntilRoomPhase(
     roomId,
-    'board_select',
+    'final_setup',
     const Duration(seconds: 35),
   );
-
-  await _tapKey(tester, 'room_round2_button');
-  await _tapKey(tester, 'room_start_final_round_button');
 
   await tester.enterText(
     find.byKey(const ValueKey('final_theme_field')),

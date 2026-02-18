@@ -39,6 +39,25 @@ class GameActionUseCases {
     return _repository.addQuestion(roomId: roomId, draft: draft);
   }
 
+  Future<void> updateQuestion({
+    required String roomId,
+    required String questionId,
+    required QuestionDraft draft,
+  }) {
+    return _repository.updateQuestion(
+      roomId: roomId,
+      questionId: questionId,
+      draft: draft,
+    );
+  }
+
+  Future<void> deleteQuestion({
+    required String roomId,
+    required String questionId,
+  }) {
+    return _repository.deleteQuestion(roomId: roomId, questionId: questionId);
+  }
+
   Future<void> addQuestions({
     required String roomId,
     required List<QuestionDraft> drafts,
@@ -110,12 +129,29 @@ class GameActionUseCases {
     );
   }
 
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  }) =>
+      _repository.selectFinalThemeDeleter(roomId: roomId, targetUid: targetUid);
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  }) => _repository.deleteFinalTheme(roomId: roomId, theme: theme);
+
   Future<void> openFinalWagers(String roomId) =>
       _repository.openFinalWagers(roomId);
   Future<void> openFinalAnswers(String roomId) =>
       _repository.openFinalAnswers(roomId);
   Future<void> submitFinalWager({required String roomId, required int wager}) {
     return _repository.submitFinalWager(roomId: roomId, wager: wager);
+  }
+
+  Future<void> submitFinalAnswer({
+    required String roomId,
+    required String answer,
+  }) {
+    return _repository.submitFinalAnswer(roomId: roomId, answer: answer);
   }
 
   Future<void> setFinalPlayerResult({

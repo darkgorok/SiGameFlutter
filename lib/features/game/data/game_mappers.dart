@@ -30,6 +30,24 @@ extension RoomDtoToDomain on RoomDto {
       finalTheme: data['finalTheme'] as String?,
       finalQuestion: data['finalQuestion'] as String?,
       finalAnswer: data['finalAnswer'] as String?,
+      finalThemePool: ((data['finalThemePool'] as List?) ?? []).cast<String>(),
+      finalThemeDeleteOrder: ((data['finalThemeDeleteOrder'] as List?) ?? [])
+          .cast<String>(),
+      finalThemeDeleteCandidates:
+          ((data['finalThemeDeleteCandidates'] as List?) ?? []).cast<String>(),
+      finalThemeDeleteNeedsSelection:
+          data['finalThemeDeleteNeedsSelection'] as bool? ?? false,
+      finalThemeDeleteIndex:
+          (data['finalThemeDeleteIndex'] as num?)?.toInt() ?? 0,
+      finalThemeDeleteCurrentUid: data['finalThemeDeleteCurrentUid'] as String?,
+      finalAnswerOrder: ((data['finalAnswerOrder'] as List?) ?? [])
+          .cast<String>(),
+      finalAnswerIndex: (data['finalAnswerIndex'] as num?)?.toInt() ?? 0,
+      finalAnswerCurrentUid: data['finalAnswerCurrentUid'] as String?,
+      finalRevealOrder: ((data['finalRevealOrder'] as List?) ?? [])
+          .cast<String>(),
+      finalRevealIndex: (data['finalRevealIndex'] as num?)?.toInt() ?? 0,
+      finalRevealCurrentUid: data['finalRevealCurrentUid'] as String?,
       finalEligibleUids: ((data['finalEligibleUids'] as List?) ?? [])
           .cast<String>(),
     );
@@ -83,7 +101,11 @@ extension PlayerDtoToDomain on PlayerDto {
       wrongAnswers: (data['wrongAnswers'] as num?)?.toInt() ?? 0,
       buzzCount: (data['buzzCount'] as num?)?.toInt() ?? 0,
       finalWager: (data['finalWager'] as num?)?.toInt() ?? 0,
+      finalWagerSubmitted: data['finalWagerSubmitted'] as bool? ?? false,
+      finalAnswerSubmitted: data['finalAnswerSubmitted'] as bool? ?? false,
+      finalAnswerText: data['finalAnswerText'] as String?,
       finalResult: FinalResult.fromValue(data['finalResult'] as String?),
+      finalRevealed: data['finalRevealed'] as bool? ?? false,
     );
   }
 }

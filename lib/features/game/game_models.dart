@@ -56,10 +56,38 @@ enum QuestionType {
   final String label;
 
   static QuestionType fromValue(String? value) {
+    final normalized = _normalizeRawType(value);
     return QuestionType.values.firstWhere(
-      (v) => v.value == value,
+      (v) => v.value == normalized,
       orElse: () => QuestionType.normal,
     );
+  }
+
+  static String _normalizeRawType(String? value) {
+    final raw = (value ?? 'normal').trim().toLowerCase();
+    final compact = raw.replaceAll(RegExp(r'[\s\-]+'), '_');
+
+    if (compact == 'cat' || compact == 'cat_in_bag') {
+      return 'cat_in_bag';
+    }
+    if (compact == 'auction' ||
+        compact == 'wager' ||
+        compact == 'stake' ||
+        compact == 'stake_all' ||
+        compact == 'stakeall') {
+      return 'wager';
+    }
+    if (compact == 'closest_number') {
+      return 'closest_number';
+    }
+    if (compact == 'secret' ||
+        compact == 'secret_public_price' ||
+        compact == 'secretpublicprice' ||
+        compact == 'secret_no_question' ||
+        compact == 'secretnoquestion') {
+      return 'cat_in_bag';
+    }
+    return 'normal';
   }
 }
 
@@ -164,6 +192,18 @@ class RoomModel {
     required this.finalTheme,
     required this.finalQuestion,
     required this.finalAnswer,
+    required this.finalThemePool,
+    required this.finalThemeDeleteOrder,
+    required this.finalThemeDeleteCandidates,
+    required this.finalThemeDeleteNeedsSelection,
+    required this.finalThemeDeleteIndex,
+    required this.finalThemeDeleteCurrentUid,
+    required this.finalAnswerOrder,
+    required this.finalAnswerIndex,
+    required this.finalAnswerCurrentUid,
+    required this.finalRevealOrder,
+    required this.finalRevealIndex,
+    required this.finalRevealCurrentUid,
     required this.finalEligibleUids,
   });
 
@@ -188,6 +228,18 @@ class RoomModel {
   final String? finalTheme;
   final String? finalQuestion;
   final String? finalAnswer;
+  final List<String> finalThemePool;
+  final List<String> finalThemeDeleteOrder;
+  final List<String> finalThemeDeleteCandidates;
+  final bool finalThemeDeleteNeedsSelection;
+  final int finalThemeDeleteIndex;
+  final String? finalThemeDeleteCurrentUid;
+  final List<String> finalAnswerOrder;
+  final int finalAnswerIndex;
+  final String? finalAnswerCurrentUid;
+  final List<String> finalRevealOrder;
+  final int finalRevealIndex;
+  final String? finalRevealCurrentUid;
   final List<String> finalEligibleUids;
 
   factory RoomModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -217,6 +269,24 @@ class RoomModel {
       finalTheme: data['finalTheme'] as String?,
       finalQuestion: data['finalQuestion'] as String?,
       finalAnswer: data['finalAnswer'] as String?,
+      finalThemePool: ((data['finalThemePool'] as List?) ?? []).cast<String>(),
+      finalThemeDeleteOrder: ((data['finalThemeDeleteOrder'] as List?) ?? [])
+          .cast<String>(),
+      finalThemeDeleteCandidates:
+          ((data['finalThemeDeleteCandidates'] as List?) ?? []).cast<String>(),
+      finalThemeDeleteNeedsSelection:
+          data['finalThemeDeleteNeedsSelection'] as bool? ?? false,
+      finalThemeDeleteIndex:
+          (data['finalThemeDeleteIndex'] as num?)?.toInt() ?? 0,
+      finalThemeDeleteCurrentUid: data['finalThemeDeleteCurrentUid'] as String?,
+      finalAnswerOrder: ((data['finalAnswerOrder'] as List?) ?? [])
+          .cast<String>(),
+      finalAnswerIndex: (data['finalAnswerIndex'] as num?)?.toInt() ?? 0,
+      finalAnswerCurrentUid: data['finalAnswerCurrentUid'] as String?,
+      finalRevealOrder: ((data['finalRevealOrder'] as List?) ?? [])
+          .cast<String>(),
+      finalRevealIndex: (data['finalRevealIndex'] as num?)?.toInt() ?? 0,
+      finalRevealCurrentUid: data['finalRevealCurrentUid'] as String?,
       finalEligibleUids: ((data['finalEligibleUids'] as List?) ?? [])
           .cast<String>(),
     );
@@ -350,7 +420,11 @@ class PlayerModel {
     required this.wrongAnswers,
     required this.buzzCount,
     required this.finalWager,
+    required this.finalWagerSubmitted,
+    required this.finalAnswerSubmitted,
+    required this.finalAnswerText,
     required this.finalResult,
+    required this.finalRevealed,
   });
 
   final String uid;
@@ -363,7 +437,11 @@ class PlayerModel {
   final int wrongAnswers;
   final int buzzCount;
   final int finalWager;
+  final bool finalWagerSubmitted;
+  final bool finalAnswerSubmitted;
+  final String? finalAnswerText;
   final FinalResult finalResult;
+  final bool finalRevealed;
 
   factory PlayerModel.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
@@ -378,7 +456,11 @@ class PlayerModel {
       wrongAnswers: (data['wrongAnswers'] as num?)?.toInt() ?? 0,
       buzzCount: (data['buzzCount'] as num?)?.toInt() ?? 0,
       finalWager: (data['finalWager'] as num?)?.toInt() ?? 0,
+      finalWagerSubmitted: data['finalWagerSubmitted'] as bool? ?? false,
+      finalAnswerSubmitted: data['finalAnswerSubmitted'] as bool? ?? false,
+      finalAnswerText: data['finalAnswerText'] as String?,
       finalResult: FinalResult.fromValue(data['finalResult'] as String?),
+      finalRevealed: data['finalRevealed'] as bool? ?? false,
     );
   }
 }

@@ -238,6 +238,31 @@ class GameActionsController extends AsyncNotifier<void> {
     if (state.hasError) throw state.error!;
   }
 
+  Future<void> updateQuestion({
+    required String roomId,
+    required String questionId,
+    required QuestionDraft draft,
+  }) async {
+    state = await AsyncValue.guard(
+      () => _actions.updateQuestion(
+        roomId: roomId,
+        questionId: questionId,
+        draft: draft,
+      ),
+    );
+    if (state.hasError) throw state.error!;
+  }
+
+  Future<void> deleteQuestion({
+    required String roomId,
+    required String questionId,
+  }) async {
+    state = await AsyncValue.guard(
+      () => _actions.deleteQuestion(roomId: roomId, questionId: questionId),
+    );
+    if (state.hasError) throw state.error!;
+  }
+
   Future<void> addQuestions({
     required String roomId,
     required List<QuestionDraft> drafts,
@@ -333,6 +358,18 @@ class GameActionsController extends AsyncNotifier<void> {
       answer: answer,
     ),
   );
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  }) async =>
+      _runVoid(() => _actions.deleteFinalTheme(roomId: roomId, theme: theme));
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  }) async => _runVoid(
+    () =>
+        _actions.selectFinalThemeDeleter(roomId: roomId, targetUid: targetUid),
+  );
   Future<void> openFinalWagers(String roomId) async =>
       _runVoid(() => _actions.openFinalWagers(roomId));
   Future<void> openFinalAnswers(String roomId) async =>
@@ -342,6 +379,12 @@ class GameActionsController extends AsyncNotifier<void> {
     required int wager,
   }) async =>
       _runVoid(() => _actions.submitFinalWager(roomId: roomId, wager: wager));
+  Future<void> submitFinalAnswer({
+    required String roomId,
+    required String answer,
+  }) async => _runVoid(
+    () => _actions.submitFinalAnswer(roomId: roomId, answer: answer),
+  );
 
   Future<void> setFinalPlayerResult({
     required String roomId,
@@ -485,6 +528,19 @@ class QuestionActions {
     required String roomId,
     required QuestionDraft draft,
   }) => _actions.addQuestion(roomId: roomId, draft: draft);
+  Future<void> updateQuestion({
+    required String roomId,
+    required String questionId,
+    required QuestionDraft draft,
+  }) => _actions.updateQuestion(
+    roomId: roomId,
+    questionId: questionId,
+    draft: draft,
+  );
+  Future<void> deleteQuestion({
+    required String roomId,
+    required String questionId,
+  }) => _actions.deleteQuestion(roomId: roomId, questionId: questionId);
   Future<void> addQuestions({
     required String roomId,
     required List<QuestionDraft> drafts,
@@ -532,12 +588,24 @@ class FinalActions {
     question: question,
     answer: answer,
   );
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  }) => _actions.selectFinalThemeDeleter(roomId: roomId, targetUid: targetUid);
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  }) => _actions.deleteFinalTheme(roomId: roomId, theme: theme);
   Future<void> openFinalWagers(String roomId) =>
       _actions.openFinalWagers(roomId);
   Future<void> openFinalAnswers(String roomId) =>
       _actions.openFinalAnswers(roomId);
   Future<void> submitFinalWager({required String roomId, required int wager}) =>
       _actions.submitFinalWager(roomId: roomId, wager: wager);
+  Future<void> submitFinalAnswer({
+    required String roomId,
+    required String answer,
+  }) => _actions.submitFinalAnswer(roomId: roomId, answer: answer);
   Future<void> setFinalPlayerResult({
     required String roomId,
     required String targetUid,

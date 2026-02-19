@@ -13,6 +13,9 @@ class _SpyGameActionsController extends GameActionsController {
   String? lastCatTargetUid;
   FinalResult? lastFinalResult;
   bool? lastJudgeCorrect;
+  num? lastNumericValue;
+  String? lastFinalThemeDeleted;
+  String? lastFinalDeleterUid;
 
   @override
   Future<void> build() async {}
@@ -112,6 +115,48 @@ class _SpyGameActionsController extends GameActionsController {
     lastJudgeCorrect = correct;
     calls.add('judgeAnswer:$roomId');
   }
+
+  @override
+  Future<void> buzz(String roomId) async {
+    calls.add('buzz:$roomId');
+  }
+
+  @override
+  Future<void> submitAnswer(String roomId) async {
+    calls.add('submitAnswer:$roomId');
+  }
+
+  @override
+  Future<void> submitNumericAnswer({
+    required String roomId,
+    required num value,
+  }) async {
+    lastNumericValue = value;
+    calls.add('submitNumericAnswer:$roomId');
+  }
+
+  @override
+  Future<void> openFinalWagers(String roomId) async {
+    calls.add('openFinalWagers:$roomId');
+  }
+
+  @override
+  Future<void> selectFinalThemeDeleter({
+    required String roomId,
+    required String targetUid,
+  }) async {
+    lastFinalDeleterUid = targetUid;
+    calls.add('selectFinalThemeDeleter:$roomId');
+  }
+
+  @override
+  Future<void> deleteFinalTheme({
+    required String roomId,
+    required String theme,
+  }) async {
+    lastFinalThemeDeleted = theme;
+    calls.add('deleteFinalTheme:$roomId');
+  }
 }
 
 RoomModel _room({
@@ -125,6 +170,11 @@ RoomModel _room({
   String? finalAnswer,
   int? timerDeadlineAtMs,
   ActiveQuestion? activeQuestion,
+  String? finalTheme,
+  String? finalQuestion,
+  List<String> finalThemePool = const <String>[],
+  bool finalThemeDeleteNeedsSelection = false,
+  List<String> finalThemeDeleteCandidates = const <String>[],
 }) {
   return RoomModel(
     id: 'room-1',
@@ -145,13 +195,13 @@ RoomModel _room({
     pendingAnswer: null,
     targetedUid: null,
     wagerValue: null,
-    finalTheme: null,
-    finalQuestion: null,
+    finalTheme: finalTheme,
+    finalQuestion: finalQuestion,
     finalAnswer: finalAnswer,
-    finalThemePool: const <String>[],
+    finalThemePool: finalThemePool,
     finalThemeDeleteOrder: const <String>[],
-    finalThemeDeleteCandidates: const <String>[],
-    finalThemeDeleteNeedsSelection: false,
+    finalThemeDeleteCandidates: finalThemeDeleteCandidates,
+    finalThemeDeleteNeedsSelection: finalThemeDeleteNeedsSelection,
     finalThemeDeleteIndex: 0,
     finalThemeDeleteCurrentUid: null,
     finalAnswerOrder: const <String>[],
@@ -748,6 +798,396 @@ void main() {
     expect(spy.calls, contains('handleTimerExpiration:room-1'));
   });
 
+  test('answering closest_number submits numeric answer for active player', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.inGame,
+        phase: GamePhase.answering,
+        round: 1,
+        activeQuestion: ActiveQuestion(
+          id: 'num1',
+          theme: 'Math',
+          text: 'N',
+          answer: '10',
+          cost: 400,
+          type: QuestionType.closestNumber,
+          mediaUrl: '',
+          mediaType: QuestionMediaType.none,
+          aliases: const <String>[],
+        ),
+      ),
+      players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('submitNumericAnswer:room-1'));
+    expect(spy.lastNumericValue, 400);
+  });
+
+  test(
+    'answering closest_number with expired deadline prioritizes first numeric submit',
+    () {
+      final spy = _SpyGameActionsController();
+      final controller = RoomAutoFlowController(enabled: true);
+      _driveAndRun(
+        controller: controller,
+        room: _room(
+          status: GameStatus.inGame,
+          phase: GamePhase.answering,
+          round: 1,
+          timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch - 1000,
+          activeQuestion: ActiveQuestion(
+            id: 'num-timeout',
+            theme: 'Math',
+            text: 'N',
+            answer: '10',
+            cost: 300,
+            type: QuestionType.closestNumber,
+            mediaUrl: '',
+            mediaType: QuestionMediaType.none,
+            aliases: const <String>[],
+          ),
+        ),
+        players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+        questions: const <QuestionModel>[],
+        uid: 'host-1',
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      expect(spy.calls, contains('submitNumericAnswer:room-1'));
+      expect(
+        spy.calls.where((c) => c == 'handleTimerExpiration:room-1').isEmpty,
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'answering closest_number handles timeout after numeric answer is already submitted',
+    () {
+      final spy = _SpyGameActionsController();
+      final controller = RoomAutoFlowController(enabled: true);
+      fakeAsync((async) {
+        final roomExpired = _room(
+          status: GameStatus.inGame,
+          phase: GamePhase.answering,
+          round: 1,
+          timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch - 1000,
+          activeQuestion: ActiveQuestion(
+            id: 'num-timeout2',
+            theme: 'Math',
+            text: 'N',
+            answer: '10',
+            cost: 300,
+            type: QuestionType.closestNumber,
+            mediaUrl: '',
+            mediaType: QuestionMediaType.none,
+            aliases: const <String>[],
+          ),
+        );
+        final players = <PlayerModel>[
+          _player(uid: 'host-1', role: PlayerRole.host),
+        ];
+
+        controller.drive(
+          mounted: true,
+          uid: 'host-1',
+          room: roomExpired,
+          players: players,
+          questions: const <QuestionModel>[],
+          myRole: PlayerRole.host,
+          isHost: true,
+          roomId: 'room-1',
+          roomActions: RoomActions(spy),
+          questionActions: QuestionActions(spy),
+          finalActions: FinalActions(spy),
+        );
+        async.elapse(const Duration(seconds: 3));
+        async.flushMicrotasks();
+
+        async.elapse(const Duration(seconds: 5));
+        controller.drive(
+          mounted: true,
+          uid: 'host-1',
+          room: roomExpired,
+          players: players,
+          questions: const <QuestionModel>[],
+          myRole: PlayerRole.host,
+          isHost: true,
+          roomId: 'room-1',
+          roomActions: RoomActions(spy),
+          questionActions: QuestionActions(spy),
+          finalActions: FinalActions(spy),
+        );
+        async.elapse(const Duration(seconds: 3));
+        async.flushMicrotasks();
+      });
+      expect(spy.calls, contains('submitNumericAnswer:room-1'));
+      expect(spy.calls, contains('handleTimerExpiration:room-1'));
+    },
+  );
+
+  test('answering closest_number submits only once for same question id', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    fakeAsync((async) {
+      final room = _room(
+        status: GameStatus.inGame,
+        phase: GamePhase.answering,
+        round: 1,
+        activeQuestion: ActiveQuestion(
+          id: 'num-once',
+          theme: 'Math',
+          text: 'N',
+          answer: '10',
+          cost: 250,
+          type: QuestionType.closestNumber,
+          mediaUrl: '',
+          mediaType: QuestionMediaType.none,
+          aliases: const <String>[],
+        ),
+      );
+      final players = <PlayerModel>[
+        _player(uid: 'host-1', role: PlayerRole.host),
+      ];
+
+      controller.drive(
+        mounted: true,
+        uid: 'host-1',
+        room: room,
+        players: players,
+        questions: const <QuestionModel>[],
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomId: 'room-1',
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      async.elapse(const Duration(seconds: 3));
+      async.flushMicrotasks();
+
+      async.elapse(const Duration(seconds: 5));
+      controller.drive(
+        mounted: true,
+        uid: 'host-1',
+        room: room,
+        players: players,
+        questions: const <QuestionModel>[],
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomId: 'room-1',
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      async.elapse(const Duration(seconds: 3));
+      async.flushMicrotasks();
+    });
+    final numericCalls = spy.calls
+        .where((c) => c == 'submitNumericAnswer:room-1')
+        .length;
+    expect(numericCalls, 1);
+  });
+
+  test(
+    'answering with no current attempt triggers buzz before timer expiry',
+    () {
+      final spy = _SpyGameActionsController();
+      final controller = RoomAutoFlowController(enabled: true);
+      _driveAndRun(
+        controller: controller,
+        room: _room(
+          status: GameStatus.inGame,
+          phase: GamePhase.answering,
+          round: 1,
+          timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch + 60 * 1000,
+          activeQuestion: _activeQuestion(id: 'a-open'),
+        ),
+        players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+        questions: const <QuestionModel>[],
+        uid: 'host-1',
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      expect(spy.calls, contains('buzz:room-1'));
+    },
+  );
+
+  test('answering for current attempt uid auto-submits answer', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.inGame,
+        phase: GamePhase.answering,
+        round: 1,
+        currentAttemptUid: 'host-1',
+        activeQuestion: _activeQuestion(id: 'a-attempt'),
+      ),
+      players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('submitAnswer:room-1'));
+  });
+
+  test('answering without attempt handles timeout when deadline passed', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.inGame,
+        phase: GamePhase.answering,
+        round: 1,
+        timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch - 1000,
+        activeQuestion: _activeQuestion(id: 'a-timeout-idle'),
+      ),
+      players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('handleTimerExpiration:room-1'));
+  });
+
+  test(
+    'answering with other current attempt handles timeout when deadline passed',
+    () {
+      final spy = _SpyGameActionsController();
+      final controller = RoomAutoFlowController(enabled: true);
+      _driveAndRun(
+        controller: controller,
+        room: _room(
+          status: GameStatus.inGame,
+          phase: GamePhase.answering,
+          round: 1,
+          currentAttemptUid: 'p1',
+          timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch - 1000,
+          activeQuestion: _activeQuestion(id: 'a-timeout-other'),
+        ),
+        players: <PlayerModel>[
+          _player(uid: 'host-1', role: PlayerRole.host),
+          _player(uid: 'p1', role: PlayerRole.player),
+        ],
+        questions: const <QuestionModel>[],
+        uid: 'host-1',
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      expect(spy.calls, contains('handleTimerExpiration:room-1'));
+    },
+  );
+
+  test('final_setup opens wagers when final question already prepared', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.finalRound,
+        phase: GamePhase.finalSetup,
+        round: 3,
+        finalTheme: 'Theme',
+        finalQuestion: 'Question',
+      ),
+      players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('openFinalWagers:room-1'));
+  });
+
+  test(
+    'final_setup selects first deleter candidate when selection required',
+    () {
+      final spy = _SpyGameActionsController();
+      final controller = RoomAutoFlowController(enabled: true);
+      _driveAndRun(
+        controller: controller,
+        room: _room(
+          status: GameStatus.finalRound,
+          phase: GamePhase.finalSetup,
+          round: 3,
+          finalThemePool: const <String>['A', 'B'],
+          finalThemeDeleteNeedsSelection: true,
+          finalThemeDeleteCandidates: const <String>['p2', 'p1'],
+        ),
+        players: <PlayerModel>[
+          _player(uid: 'host-1', role: PlayerRole.host),
+          _player(uid: 'p1'),
+          _player(uid: 'p2'),
+        ],
+        questions: const <QuestionModel>[],
+        uid: 'host-1',
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      expect(spy.calls, contains('selectFinalThemeDeleter:room-1'));
+      expect(spy.lastFinalDeleterUid, 'p2');
+    },
+  );
+
+  test('final_setup deletes first theme when selection not required', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.finalRound,
+        phase: GamePhase.finalSetup,
+        round: 3,
+        finalThemePool: const <String>['T1', 'T2', 'T3'],
+      ),
+      players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('deleteFinalTheme:room-1'));
+    expect(spy.lastFinalThemeDeleted, 'T1');
+  });
+
   test('final_wagering submits wager for eligible player and caps at 300', () {
     final spy = _SpyGameActionsController();
     final controller = RoomAutoFlowController(enabled: true);
@@ -897,6 +1337,34 @@ void main() {
     );
   });
 
+  test('final_wagering handles timeout when not all wagers are submitted', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.finalRound,
+        phase: GamePhase.finalWagering,
+        round: 3,
+        timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch - 1000,
+        finalEligibleUids: const <String>['p1', 'p2'],
+      ),
+      players: <PlayerModel>[
+        _player(uid: 'host-1', role: PlayerRole.host),
+        _player(uid: 'p1', finalWagerSubmitted: true),
+        _player(uid: 'p2', finalWagerSubmitted: false),
+      ],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('handleTimerExpiration:room-1'));
+  });
+
   test('final_answering submits answer for current eligible player', () {
     final spy = _SpyGameActionsController();
     final controller = RoomAutoFlowController(enabled: true);
@@ -992,6 +1460,38 @@ void main() {
     expect(spy.lastFinalResult, FinalResult.wrong);
   });
 
+  test(
+    'final_answering handles timeout for non-current viewer when deadline passed',
+    () {
+      final spy = _SpyGameActionsController();
+      final controller = RoomAutoFlowController(enabled: true);
+      _driveAndRun(
+        controller: controller,
+        room: _room(
+          status: GameStatus.finalRound,
+          phase: GamePhase.finalAnswering,
+          round: 3,
+          timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch - 1000,
+          finalEligibleUids: const <String>['p1'],
+          finalAnswerCurrentUid: 'p1',
+          finalAnswer: 'Paris',
+        ),
+        players: <PlayerModel>[
+          _player(uid: 'host-1', role: PlayerRole.host),
+          _player(uid: 'p1', finalAnswerSubmitted: false),
+        ],
+        questions: const <QuestionModel>[],
+        uid: 'host-1',
+        myRole: PlayerRole.host,
+        isHost: true,
+        roomActions: RoomActions(spy),
+        questionActions: QuestionActions(spy),
+        finalActions: FinalActions(spy),
+      );
+      expect(spy.calls, contains('handleTimerExpiration:room-1'));
+    },
+  );
+
   test('final_answering reveals final when nobody pending', () {
     final spy = _SpyGameActionsController();
     final controller = RoomAutoFlowController(enabled: true);
@@ -1040,5 +1540,28 @@ void main() {
       finalActions: FinalActions(spy),
     );
     expect(spy.calls, contains('handleTimerExpiration:room-1'));
+  });
+
+  test('final_reveal reveals next step before timer expiry', () {
+    final spy = _SpyGameActionsController();
+    final controller = RoomAutoFlowController(enabled: true);
+    _driveAndRun(
+      controller: controller,
+      room: _room(
+        status: GameStatus.finalRound,
+        phase: GamePhase.finalReveal,
+        round: 3,
+        timerDeadlineAtMs: DateTime.now().millisecondsSinceEpoch + 60 * 1000,
+      ),
+      players: <PlayerModel>[_player(uid: 'host-1', role: PlayerRole.host)],
+      questions: const <QuestionModel>[],
+      uid: 'host-1',
+      myRole: PlayerRole.host,
+      isHost: true,
+      roomActions: RoomActions(spy),
+      questionActions: QuestionActions(spy),
+      finalActions: FinalActions(spy),
+    );
+    expect(spy.calls, contains('revealFinal:room-1'));
   });
 }

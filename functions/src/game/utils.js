@@ -51,7 +51,7 @@ function normalizeQuestionKind(value) {
   const raw = String(value || 'normal').trim().toLowerCase();
   const compact = raw.replace(/[\s\-]+/g, '_');
 
-  if (compact === 'cat' || compact === 'cat_in_bag') {
+  if (compact === 'cat' || compact === 'cat_in_bag' || compact === 'bagcat') {
     return 'cat_in_bag';
   }
   if (compact === 'auction' || compact === 'wager') {

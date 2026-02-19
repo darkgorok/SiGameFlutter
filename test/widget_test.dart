@@ -6,7 +6,7 @@ void main() {
   testWidgets('shows Firebase setup screen when no dart-defines are set', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: SiGameApp()));
+    await tester.pumpWidget(const ProviderScope(child: BrainBlitzApp()));
 
     expect(find.textContaining('Firebase'), findsOneWidget);
   });

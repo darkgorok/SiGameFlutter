@@ -1,6 +1,6 @@
 ﻿{
   "@@locale": "uk",
-  "appTitle": "Своя гра онлайн",
+  "appTitle": "BrainBlitz",
   "routeNotFound": "Маршрут не знайдено",
   "initializationError": "Помилка ініціалізації: {error}",
   "firebaseNotConfiguredMessage": "Firebase не налаштовано.\n\nСтвори локальний файл config/firebase.web.json (приклад: config/firebase.web.example.json), потім запусти:\n\nflutter run -d chrome --dart-define-from-file=config/firebase.web.json\n\nПісля цього будуть доступні кімнати, синхронізація, ре-конект та онлайн-гра.",

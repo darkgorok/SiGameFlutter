@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'SiGame Online'**
+  /// **'BrainBlitz'**
   String get appTitle;
 
   /// No description provided for @routeNotFound.

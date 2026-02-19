@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'SiGame Online';
+  String get appTitle => 'BrainBlitz';
 
   @override
   String get routeNotFound => 'Route not found';

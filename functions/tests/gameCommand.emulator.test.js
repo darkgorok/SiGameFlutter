@@ -227,6 +227,64 @@ test('add_question persists answer field', { skip: !hasEmulator }, async () => {
   assert.equal(String(q.answer), 'Answer42');
 });
 
+test('bagcat alias is normalized to cat_in_bag and enters cat targeting flow', { skip: !hasEmulator }, async () => {
+  const { gameCommandHandler } = require('../index');
+  const db = admin.firestore();
+  const hostUid = `host-bagcat-${Date.now()}`;
+  const p1Uid = `${hostUid}-p1`;
+  const p2Uid = `${hostUid}-p2`;
+  await Promise.all([
+    db.collection('profiles').doc(hostUid).set({ nickname: 'HostBagcat' }),
+    db.collection('profiles').doc(p1Uid).set({ nickname: 'P1Bagcat' }),
+    db.collection('profiles').doc(p2Uid).set({ nickname: 'P2Bagcat' }),
+  ]);
+
+  const call = (uid, command, data = {}, roomId = undefined) => {
+    const payload = { command, data };
+    if (roomId) payload.roomId = roomId;
+    return gameCommandHandler(payload, { auth: { uid } });
+  };
+
+  const create = await call(hostUid, 'create_room', { roomName: 'BagcatAliasRoom' });
+  const roomId = create.roomId;
+  const roomRef = db.collection('rooms').doc(roomId);
+  await call(p1Uid, 'join_room', { role: 'player' }, roomId);
+  await call(p2Uid, 'join_room', { role: 'player' }, roomId);
+
+  await call(
+    hostUid,
+    'add_question',
+    {
+      theme: 'Bagcat',
+      text: 'Alias question',
+      answer: 'Alias answer',
+      cost: 100,
+      round: 1,
+      type: 'bagcat',
+      mediaType: 'none',
+    },
+    roomId,
+  );
+
+  const qSnap = await roomRef.collection('questions').limit(1).get();
+  const questionId = qSnap.docs[0].id;
+  const q = qSnap.docs[0].data() || {};
+  assert.equal(String(q.type || ''), 'cat_in_bag');
+  assert.equal(String(q.kind || ''), 'cat_in_bag');
+
+  await call(hostUid, 'start_game', {}, roomId);
+  await call(hostUid, 'pick_question', { questionId }, roomId);
+
+  let room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase || ''), 'cat_targeting');
+  assert.equal(String(room.activeQuestion?.type || ''), 'cat_in_bag');
+
+  await call(hostUid, 'select_cat_target', { targetUid: p1Uid }, roomId);
+  room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase || ''), 'answering');
+  assert.equal(String(room.currentAttemptUid || ''), p1Uid);
+});
+
 test('add_questions_bulk validates required question fields', { skip: !hasEmulator }, async () => {
   const { gameCommandHandler } = require('../index');
   const db = admin.firestore();
@@ -2841,6 +2899,75 @@ test('gameplay commands are rejected while room is paused', { skip: !hasEmulator
     () => call(hostUid, 'open_final_wagers', {}, roomId),
     (error) => error && error.code === 'failed-precondition',
   );
+});
+
+test('pause/resume preserves timer remaining and shifts deadline forward', { skip: !hasEmulator }, async () => {
+  const { gameCommandHandler } = require('../index');
+  const db = admin.firestore();
+
+  const hostUid = `host-pause-resume-${Date.now()}`;
+  const p1Uid = `${hostUid}-p1`;
+  await Promise.all([
+    db.collection('profiles').doc(hostUid).set({ nickname: 'HostPauseResume' }),
+    db.collection('profiles').doc(p1Uid).set({ nickname: 'P1PauseResume' }),
+  ]);
+
+  const call = (uid, command, data = {}, roomId = undefined) => {
+    const payload = { command, data };
+    if (roomId) payload.roomId = roomId;
+    return gameCommandHandler(payload, { auth: { uid } });
+  };
+
+  const create = await call(hostUid, 'create_room', { roomName: 'PauseResumeRoom' });
+  const roomId = create.roomId;
+  const roomRef = db.collection('rooms').doc(roomId);
+
+  await call(p1Uid, 'join_room', { role: 'player' }, roomId);
+  await call(
+    hostUid,
+    'add_question',
+    {
+      theme: 'Pause',
+      text: 'Deadline question',
+      answer: 'A',
+      cost: 100,
+      round: 1,
+      type: 'normal',
+      mediaType: 'none',
+    },
+    roomId,
+  );
+
+  const qSnap = await roomRef.collection('questions').limit(1).get();
+  const questionId = qSnap.docs[0].id;
+  await call(hostUid, 'start_game', {}, roomId);
+  await call(hostUid, 'pick_question', { questionId }, roomId);
+  await call(hostUid, 'open_buzzing', {}, roomId);
+
+  const beforePause = (await roomRef.get()).data() || {};
+  const deadlineBeforePause = Number(beforePause.timerDeadlineAtMs || 0);
+  const remainingBeforePause = Math.max(0, deadlineBeforePause - Date.now());
+  assert.ok(remainingBeforePause > 1000);
+
+  await call(hostUid, 'pause_game', {}, roomId);
+  const paused = (await roomRef.get()).data() || {};
+  assert.equal(String(paused.status || ''), 'paused');
+  assert.equal(Number(paused.timerDeadlineAtMs || 0), 0);
+  const pausedRemaining = Number(paused.timerRemainingMs || 0);
+  assert.ok(pausedRemaining > 0);
+  assert.ok(pausedRemaining <= remainingBeforePause + 250);
+
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await call(hostUid, 'resume_game', {}, roomId);
+
+  const resumed = (await roomRef.get()).data() || {};
+  assert.equal(String(resumed.status || ''), 'in_game');
+  assert.equal(resumed.timerRemainingMs, null);
+  const resumedDeadline = Number(resumed.timerDeadlineAtMs || 0);
+  const resumedRemaining = Math.max(0, resumedDeadline - Date.now());
+  assert.ok(resumedRemaining > 0);
+  assert.ok(resumedRemaining <= pausedRemaining + 300);
+  assert.ok(resumedRemaining >= Math.max(0, pausedRemaining - 700));
 });
 
 test('disconnected non-host player cannot pause game', { skip: !hasEmulator }, async () => {

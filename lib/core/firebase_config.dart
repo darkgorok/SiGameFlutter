@@ -12,6 +12,18 @@ const firebaseMessagingSenderId = String.fromEnvironment(
   'FIREBASE_MESSAGING_SENDER_ID',
 );
 const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
+const firebaseFirestoreDatabaseId = String.fromEnvironment(
+  'FIREBASE_FIRESTORE_DATABASE_ID',
+  defaultValue: 'databasewarsaw',
+);
+const firebaseEmulatorFirestoreDatabaseId = String.fromEnvironment(
+  'FIREBASE_EMULATOR_FIRESTORE_DATABASE_ID',
+  defaultValue: '(default)',
+);
+const firebaseFunctionsRegion = String.fromEnvironment(
+  'FIREBASE_FUNCTIONS_REGION',
+  defaultValue: 'europe-central2',
+);
 const useFirebaseEmulators = bool.fromEnvironment(
   'USE_FIREBASE_EMULATORS',
   defaultValue: false,
@@ -26,6 +38,10 @@ bool get firebaseConfigured =>
     (firebaseApiKey.isNotEmpty &&
         firebaseProjectId.isNotEmpty &&
         firebaseAppId.isNotEmpty);
+
+String get activeFirestoreDatabaseId => useFirebaseEmulators
+    ? firebaseEmulatorFirestoreDatabaseId
+    : firebaseFirestoreDatabaseId;
 
 Future<void> initializeFirebaseFromEnvironment() async {
   if (!firebaseConfigured) {
@@ -73,8 +89,13 @@ void connectFirebaseEmulatorsIfEnabled() {
 
   const host = '127.0.0.1';
 
-  FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-  FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
+  FirebaseFirestore.instanceFor(
+    app: Firebase.app(),
+    databaseId: activeFirestoreDatabaseId,
+  ).useFirestoreEmulator(host, 8080);
+  FirebaseFunctions.instanceFor(
+    region: firebaseFunctionsRegion,
+  ).useFunctionsEmulator(host, 5001);
   if (kIsWeb) {
     FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
   }

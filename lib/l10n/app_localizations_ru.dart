@@ -9,7 +9,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appTitle => 'Своя игра онлайн';
+  String get appTitle => 'BrainBlitz';
 
   @override
   String get routeNotFound => 'Маршрут не найден';

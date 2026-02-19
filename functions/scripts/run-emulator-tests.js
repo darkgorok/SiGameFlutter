@@ -109,6 +109,7 @@ async function main() {
     ...process.env,
     PATH: `${jdkBin}${path.delimiter}${process.env.PATH || ''}`,
     FIRESTORE_EMULATOR_HOST: `${HOST}:${PORT}`,
+    FIRESTORE_DATABASE_ID: '(default)',
     GCLOUD_PROJECT: PROJECT_ID,
     GOOGLE_CLOUD_PROJECT: PROJECT_ID,
     FIREBASE_CONFIG: JSON.stringify({ projectId: PROJECT_ID }),

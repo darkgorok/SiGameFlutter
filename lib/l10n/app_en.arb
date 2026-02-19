@@ -1,6 +1,6 @@
 ﻿{
   "@@locale": "en",
-  "appTitle": "SiGame Online",
+  "appTitle": "BrainBlitz",
   "routeNotFound": "Route not found",
   "initializationError": "Initialization error: {error}",
   "@initializationError": {

@@ -15,8 +15,8 @@ import 'presentation/global_async_feedback.dart';
 import 'presentation/loading_screen.dart';
 import 'router.dart';
 
-class SiGameApp extends ConsumerWidget {
-  const SiGameApp({super.key});
+class BrainBlitzApp extends ConsumerWidget {
+  const BrainBlitzApp({super.key});
 
   ThemeData _darkGameTheme() {
     const bg = Color(0xFF2B2B2B);

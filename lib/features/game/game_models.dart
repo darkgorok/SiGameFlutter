@@ -67,7 +67,7 @@ enum QuestionType {
     final raw = (value ?? 'normal').trim().toLowerCase();
     final compact = raw.replaceAll(RegExp(r'[\s\-]+'), '_');
 
-    if (compact == 'cat' || compact == 'cat_in_bag') {
+    if (compact == 'cat' || compact == 'cat_in_bag' || compact == 'bagcat') {
       return 'cat_in_bag';
     }
     if (compact == 'auction' ||

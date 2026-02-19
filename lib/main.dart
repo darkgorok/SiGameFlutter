@@ -7,14 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app_entry.dart';
 import 'core/firebase_config.dart';
 
-export 'app/app_entry.dart' show SiGameApp;
+export 'app/app_entry.dart' show BrainBlitzApp;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _installWebDebugNoiseFilter();
   await initializeFirebaseFromEnvironment();
   connectFirebaseEmulatorsIfEnabled();
-  runApp(const ProviderScope(child: SiGameApp()));
+  runApp(const ProviderScope(child: BrainBlitzApp()));
 }
 
 void _installWebDebugNoiseFilter() {

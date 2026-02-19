@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'shared_prefs_cache.dart';
+import 'firebase_config.dart';
 import '../features/game/data/game_repository.dart';
 import '../features/game/data/game_repository_impl.dart';
 import '../features/game/game_service.dart';
@@ -16,9 +17,12 @@ final sharedPreferencesProvider = FutureProvider<SharedPreferences>((ref) {
 
 final gameServiceProvider = Provider<GameService>((ref) {
   return GameService(
-    firestore: FirebaseFirestore.instance,
+    firestore: FirebaseFirestore.instanceFor(
+      app: FirebaseAuth.instance.app,
+      databaseId: activeFirestoreDatabaseId,
+    ),
     auth: FirebaseAuth.instance,
-    functions: FirebaseFunctions.instance,
+    functions: FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion),
   );
 });
 
@@ -33,7 +37,10 @@ final localSettingsProvider = FutureProvider<LocalSettings>((ref) async {
 
 final profileStreamProvider = StreamProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, uid) {
-      return FirebaseFirestore.instance
+      return FirebaseFirestore.instanceFor(
+            app: FirebaseAuth.instance.app,
+            databaseId: activeFirestoreDatabaseId,
+          )
           .collection('profiles')
           .doc(uid)
           .snapshots()

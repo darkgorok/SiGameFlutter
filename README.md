@@ -1,4 +1,4 @@
-# SiGameFlutter
+# BrainBlitz
 
 Онлайн-версия игры «Своя игра» на Flutter Web + Firebase.
 
@@ -20,6 +20,9 @@ flutter pub get
 ```bash
 flutter run -d chrome --dart-define-from-file=config/firebase.web.json
 ```
+
+Для прод-конфига функций используется регион `europe-central2` (можно переопределить через `--dart-define=FIREBASE_FUNCTIONS_REGION=...`).
+Для Firestore используется БД `databasewarsaw` (можно переопределить через `--dart-define=FIREBASE_FIRESTORE_DATABASE_ID=...`).
 
 4. Собрать web:
 
@@ -84,6 +87,8 @@ firebase deploy --only hosting
 - [x] Расширены Flutter UI-тесты экранов игры с мокингом `room/players/questions/events` потоков и user uid через провайдеры.
 - [x] Покрыты unit-тестами ключевые ветки `RoomAutoFlowController` (board/cat/wager/answer/final/timer/anti-duplication).
 - [x] Добавлены e2e-регрессии final-команд, включая запрет `open_final_answers` до получения ставок от всех eligible игроков.
+- [x] Добавлена совместимость с alias-типом `bagcat` из оригинального SI (`bagcat -> cat_in_bag`) в backend и Flutter-моделях.
+- [x] Добавлена e2e-регрессия паузы/продолжения: при `pause/resume` сохраняется остаток таймера и корректно сдвигается `timerDeadlineAtMs`.
 
 ### Команда полного emulator e2e прогона
 

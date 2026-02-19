@@ -9,7 +9,7 @@ class AppLocalizationsUk extends AppLocalizations {
   AppLocalizationsUk([String locale = 'uk']) : super(locale);
 
   @override
-  String get appTitle => 'Своя гра онлайн';
+  String get appTitle => 'BrainBlitz';
 
   @override
   String get routeNotFound => 'Маршрут не знайдено';

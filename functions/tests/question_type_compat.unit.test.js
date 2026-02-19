@@ -15,6 +15,7 @@ test('normalizes SI and legacy question types into engine canonical types', () =
     ['no_risk', 'normal'],
     ['cat', 'cat_in_bag'],
     ['cat_in_bag', 'cat_in_bag'],
+    ['bagcat', 'cat_in_bag'],
     ['secret', 'cat_in_bag'],
     ['secret_public_price', 'cat_in_bag'],
     ['secret_no_question', 'cat_in_bag'],
@@ -32,6 +33,7 @@ test('normalizes SI and legacy question types into engine canonical types', () =
 
 test('normalizes canonical question kinds for SI-specific types', () => {
   const cases = [
+    ['bagcat', 'cat_in_bag'],
     ['stake', 'stake'],
     ['stake_all', 'stake_all'],
     ['secret_public_price', 'secret_public_price'],

@@ -7,6 +7,7 @@ import '../../../../core/l10n.dart';
 import '../../application/game_providers.dart';
 import '../../game_localizations.dart';
 import '../../game_models.dart';
+import '../player_roster_utils.dart';
 
 class RoomSidePanel extends ConsumerStatefulWidget {
   const RoomSidePanel({
@@ -39,6 +40,38 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
     final actions = ref.read(playerActionsProvider);
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final eventsAsync = ref.watch(eventsStreamProvider(widget.roomId));
+    final players = playersAsync.valueOrNull ?? const <PlayerModel>[];
+    String formatEventTime(DateTime? timestamp) {
+      if (timestamp == null) {
+        return '-';
+      }
+      final local = timestamp.toLocal();
+      final now = DateTime.now();
+      final sameDate =
+          local.year == now.year &&
+          local.month == now.month &&
+          local.day == now.day;
+      final time = TimeOfDay.fromDateTime(local).format(context);
+      if (sameDate) {
+        return time;
+      }
+      final dd = local.day.toString().padLeft(2, '0');
+      final mm = local.month.toString().padLeft(2, '0');
+      return '$dd.$mm $time';
+    }
+
+    String resolvePlayerName(String uid) {
+      if (uid.isEmpty) {
+        return uid;
+      }
+      for (final player in players) {
+        if (player.uid == uid) {
+          return player.nickname;
+        }
+      }
+      return uid;
+    }
+
     return Column(
       children: [
         Padding(
@@ -70,10 +103,23 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                           ),
                         ),
                         data: (players) {
+                          final summary = summarizeRoster(players);
                           return ListView.builder(
-                            itemCount: players.length,
+                            itemCount: players.length + 1,
                             itemBuilder: (context, index) {
-                              final p = players[index];
+                              if (index == 0) {
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    context.l10n.playersCountSummary(
+                                      summary.total,
+                                      summary.active,
+                                      summary.spectators,
+                                    ),
+                                  ),
+                                );
+                              }
+                              final p = players[index - 1];
                               return Card(
                                 child: Padding(
                                   padding: const EdgeInsets.all(8),
@@ -230,9 +276,9 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                               final e = events[index];
                               return ListTile(
                                 dense: true,
-                                title: Text(e.message),
+                                title: Text(e.localizedMessage(context)),
                                 subtitle: Text(
-                                  '${e.type} | ${e.actorUid} | ${e.createdAt ?? ''}',
+                                  '${resolvePlayerName(e.actorUid)} | ${formatEventTime(e.createdAt)}',
                                 ),
                               );
                             },

@@ -105,6 +105,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get roomPasswordLabel => 'Пароль (необязательно)';
 
   @override
+  String get invalidRoomPassword => 'Неверный пароль комнаты.';
+
+  @override
+  String get roomPasswordRequired => 'Для входа нужен пароль комнаты.';
+
+  @override
   String get packFileRequired => 'Файл пака обязателен';
 
   @override
@@ -341,6 +347,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mediaLabel => 'Медиа';
 
   @override
+  String get mediaPreviewAudio => 'Аудио-медиа';
+
+  @override
+  String get mediaPreviewVideo => 'Видео-медиа';
+
+  @override
+  String get mediaPreviewUnavailable => 'Предпросмотр медиа недоступен';
+
+  @override
   String get openAnswerButton => 'Открыть кнопку ответа';
 
   @override
@@ -441,6 +456,81 @@ class AppLocalizationsRu extends AppLocalizations {
   String get placeWager => 'Поставить';
 
   @override
+  String get yourFinalAnswerLabel => 'Ваш финальный ответ';
+
+  @override
+  String get submitAnswer => 'Отправить ответ';
+
+  @override
+  String finalThemesList(Object themes) {
+    return 'Темы финала: $themes';
+  }
+
+  @override
+  String finalCurrentDeleter(Object name) {
+    return 'Сейчас удаляет: $name';
+  }
+
+  @override
+  String finalPickDeleterFrom(Object names) {
+    return 'Ведущий должен выбрать удаляющего из: $names';
+  }
+
+  @override
+  String get finalSelectFirstDeleterTie =>
+      'Выберите первого удаляющего (ничья):';
+
+  @override
+  String finalSelectNamed(Object name) {
+    return 'Выбрать \"$name\"';
+  }
+
+  @override
+  String finalDeleteTurn(Object name) {
+    return 'Ход удаления: $name';
+  }
+
+  @override
+  String finalDeleteTheme(Object theme) {
+    return 'Удалить \"$theme\"';
+  }
+
+  @override
+  String currentAnsweringPlayer(Object name) {
+    return 'Сейчас отвечает: $name';
+  }
+
+  @override
+  String finalRevealStep(int current, int total) {
+    return 'Шаг вскрытия финала: $current/$total';
+  }
+
+  @override
+  String currentRevealPlayer(Object name) {
+    return 'Сейчас вскрывается: $name';
+  }
+
+  @override
+  String get nowAnswering => 'Отвечает сейчас';
+
+  @override
+  String get answerSubmitted => 'Ответ отправлен';
+
+  @override
+  String get answerNotSubmitted => 'Ответ не отправлен';
+
+  @override
+  String answerText(Object answer) {
+    return 'Текст ответа: $answer';
+  }
+
+  @override
+  String get revealed => 'Вскрыт';
+
+  @override
+  String get waitingReveal => 'Ожидает вскрытия';
+
+  @override
   String get discordVoiceInfo =>
       'Ответы даются только голосом в Discord. Ведущий отмечает исход каждого ответа.';
 
@@ -473,6 +563,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String playersCountSummary(int total, int active, int spectators) {
+    return 'Участников: $total | Активных: $active | Зрителей: $spectators';
+  }
+
+  @override
   String get manualAdjustment => 'Ручная корректировка';
 
   @override
@@ -486,6 +581,129 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get noEventsYet => 'Событий пока нет';
+
+  @override
+  String get eventQuestionAdd => 'Вопрос добавлен';
+
+  @override
+  String get eventQuestionAddBulk => 'Вопросы добавлены массово';
+
+  @override
+  String get eventQuestionUpdate => 'Вопрос обновлён';
+
+  @override
+  String get eventQuestionDelete => 'Вопрос удалён';
+
+  @override
+  String get eventPackSave => 'Пак сохранён';
+
+  @override
+  String get eventPackApply => 'Пак применён к комнате';
+
+  @override
+  String get eventTimerExpire => 'Таймер истёк';
+
+  @override
+  String get eventFinalRevealStart => 'Начато вскрытие финала';
+
+  @override
+  String get eventFinalRevealEnd => 'Вскрытие финала завершено';
+
+  @override
+  String get eventFinalRevealStep => 'Шаг вскрытия финала';
+
+  @override
+  String get eventAnswerSubmit => 'Голосовой ответ отправлен';
+
+  @override
+  String get eventAnswerSubmitNumeric => 'Числовой ответ отправлен';
+
+  @override
+  String get eventFinalStart => 'Финальный раунд начат';
+
+  @override
+  String get eventJudge => 'Ведущий оценил ответ';
+
+  @override
+  String get eventAppealSubmit => 'Апелляция отправлена';
+
+  @override
+  String get eventAppealResolve => 'Апелляция рассмотрена';
+
+  @override
+  String get eventScoreManual => 'Ручная корректировка счёта';
+
+  @override
+  String get eventPause => 'Игра поставлена на паузу';
+
+  @override
+  String get eventResume => 'Игра продолжена';
+
+  @override
+  String get eventFinalQuestionSet => 'Финальный вопрос задан';
+
+  @override
+  String get eventFinalThemeDeleterSelected => 'Выбран удаляющий тему финала';
+
+  @override
+  String get eventFinalThemeDeleted => 'Тема финала удалена';
+
+  @override
+  String get eventFinalWagerOpen => 'Открыты финальные ставки';
+
+  @override
+  String get eventFinalAnswersOpen => 'Открыт этап финальных ответов';
+
+  @override
+  String get eventFinalAnswerSubmit => 'Финальный ответ отправлен';
+
+  @override
+  String get eventFinalWager => 'Финальная ставка отправлена';
+
+  @override
+  String get eventFinalMark => 'Результат финального ответа отмечен';
+
+  @override
+  String get eventStart => 'Игра началась';
+
+  @override
+  String get eventQuestionPick => 'Выбран вопрос';
+
+  @override
+  String get eventBuzzOpen => 'Открыта кнопка ответа';
+
+  @override
+  String get eventCatTarget => 'Выбран получатель Кота в мешке';
+
+  @override
+  String get eventWagerSet => 'Ставка установлена';
+
+  @override
+  String get eventRoundNext => 'Переход в следующий раунд';
+
+  @override
+  String get eventBuzz => 'Игрок нажал кнопку';
+
+  @override
+  String get eventRoomCreated => 'Комната создана';
+
+  @override
+  String get eventJoin => 'Игрок вошёл в комнату';
+
+  @override
+  String get eventRoleChange => 'Роль игрока изменена';
+
+  @override
+  String get eventKick => 'Игрок исключён';
+
+  @override
+  String get eventBan => 'Игрок забанен';
+
+  @override
+  String get eventUnban => 'Игрок разбанен';
+
+  @override
+  String get eventRulesUpdate => 'Правила комнаты обновлены';
 
   @override
   String get myPackDefault => 'Мой пак';
@@ -518,6 +736,21 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get questionAdded => 'Вопрос добавлен';
+
+  @override
+  String get questionUpdated => 'Вопрос обновлён';
+
+  @override
+  String get questionDeleted => 'Вопрос удалён';
+
+  @override
+  String get editAction => 'Изменить';
+
+  @override
+  String get deleteAction => 'Удалить';
+
+  @override
+  String get deleteQuestionTitle => 'Удалить вопрос';
 
   @override
   String get exportPackageTitle => 'Экспорт пакета';

@@ -29,6 +29,8 @@
   "roomNameRequired": "Название комнаты обязательно",
   "createRoomDialogTitle": "Создание комнаты",
   "roomPasswordLabel": "Пароль (необязательно)",
+  "invalidRoomPassword": "Неверный пароль комнаты.",
+  "roomPasswordRequired": "Для входа нужен пароль комнаты.",
   "packFileRequired": "Файл пака обязателен",
   "enterRoomPasswordTitle": "Введите пароль для: {roomName}",
   "@enterRoomPasswordTitle": {
@@ -107,6 +109,9 @@
   "noQuestionsCurrentRound": "Нет вопросов для текущего раунда",
   "activeQuestionHeader": "Активный: {theme} | {type} | {cost}",
   "mediaLabel": "Медиа",
+  "mediaPreviewAudio": "Аудио-медиа",
+  "mediaPreviewVideo": "Видео-медиа",
+  "mediaPreviewUnavailable": "Предпросмотр медиа недоступен",
   "openAnswerButton": "Открыть кнопку ответа",
   "answeringNow": "Отвечает",
   "answeredByVoice": "Ответ дал голосом",
@@ -137,6 +142,79 @@
   "questionLabel": "Вопрос",
   "yourFinalWager": "Ваша финальная ставка",
   "placeWager": "Поставить",
+  "yourFinalAnswerLabel": "Ваш финальный ответ",
+  "submitAnswer": "Отправить ответ",
+  "finalThemesList": "Темы финала: {themes}",
+  "@finalThemesList": {
+    "placeholders": {
+      "themes": {}
+    }
+  },
+  "finalCurrentDeleter": "Сейчас удаляет: {name}",
+  "@finalCurrentDeleter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalPickDeleterFrom": "Ведущий должен выбрать удаляющего из: {names}",
+  "@finalPickDeleterFrom": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "finalSelectFirstDeleterTie": "Выберите первого удаляющего (ничья):",
+  "finalSelectNamed": "Выбрать \"{name}\"",
+  "@finalSelectNamed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalDeleteTurn": "Ход удаления: {name}",
+  "@finalDeleteTurn": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalDeleteTheme": "Удалить \"{theme}\"",
+  "@finalDeleteTheme": {
+    "placeholders": {
+      "theme": {}
+    }
+  },
+  "currentAnsweringPlayer": "Сейчас отвечает: {name}",
+  "@currentAnsweringPlayer": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalRevealStep": "Шаг вскрытия финала: {current}/{total}",
+  "@finalRevealStep": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "currentRevealPlayer": "Сейчас вскрывается: {name}",
+  "@currentRevealPlayer": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "nowAnswering": "Отвечает сейчас",
+  "answerSubmitted": "Ответ отправлен",
+  "answerNotSubmitted": "Ответ не отправлен",
+  "answerText": "Текст ответа: {answer}",
+  "@answerText": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "revealed": "Вскрыт",
+  "waitingReveal": "Ожидает вскрытия",
   "discordVoiceInfo": "Ответы даются только голосом в Discord. Ведущий отмечает исход каждого ответа.",
   "playerWagerLine": "{name} | ставка: {wager}",
   "decisionLabel": "Решение",
@@ -146,11 +224,66 @@
   "offline": "offline",
   "scoreLabel": "Счёт",
   "statsLine": "Стат: +{correct} / -{wrong} | Кнопка: {buzz}",
+  "playersCountSummary": "Участников: {total} | Активных: {active} | Зрителей: {spectators}",
+  "@playersCountSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      },
+      "spectators": {
+        "type": "int"
+      }
+    }
+  },
   "manualAdjustment": "Ручная корректировка",
   "kick": "Кик",
   "ban": "Бан",
   "unban": "Разбан",
   "noEventsYet": "Событий пока нет",
+  "eventQuestionAdd": "Вопрос добавлен",
+  "eventQuestionAddBulk": "Вопросы добавлены массово",
+  "eventQuestionUpdate": "Вопрос обновлён",
+  "eventQuestionDelete": "Вопрос удалён",
+  "eventPackSave": "Пак сохранён",
+  "eventPackApply": "Пак применён к комнате",
+  "eventTimerExpire": "Таймер истёк",
+  "eventFinalRevealStart": "Начато вскрытие финала",
+  "eventFinalRevealEnd": "Вскрытие финала завершено",
+  "eventFinalRevealStep": "Шаг вскрытия финала",
+  "eventAnswerSubmit": "Голосовой ответ отправлен",
+  "eventAnswerSubmitNumeric": "Числовой ответ отправлен",
+  "eventFinalStart": "Финальный раунд начат",
+  "eventJudge": "Ведущий оценил ответ",
+  "eventAppealSubmit": "Апелляция отправлена",
+  "eventAppealResolve": "Апелляция рассмотрена",
+  "eventScoreManual": "Ручная корректировка счёта",
+  "eventPause": "Игра поставлена на паузу",
+  "eventResume": "Игра продолжена",
+  "eventFinalQuestionSet": "Финальный вопрос задан",
+  "eventFinalThemeDeleterSelected": "Выбран удаляющий тему финала",
+  "eventFinalThemeDeleted": "Тема финала удалена",
+  "eventFinalWagerOpen": "Открыты финальные ставки",
+  "eventFinalAnswersOpen": "Открыт этап финальных ответов",
+  "eventFinalAnswerSubmit": "Финальный ответ отправлен",
+  "eventFinalWager": "Финальная ставка отправлена",
+  "eventFinalMark": "Результат финального ответа отмечен",
+  "eventStart": "Игра началась",
+  "eventQuestionPick": "Выбран вопрос",
+  "eventBuzzOpen": "Открыта кнопка ответа",
+  "eventCatTarget": "Выбран получатель Кота в мешке",
+  "eventWagerSet": "Ставка установлена",
+  "eventRoundNext": "Переход в следующий раунд",
+  "eventBuzz": "Игрок нажал кнопку",
+  "eventRoomCreated": "Комната создана",
+  "eventJoin": "Игрок вошёл в комнату",
+  "eventRoleChange": "Роль игрока изменена",
+  "eventKick": "Игрок исключён",
+  "eventBan": "Игрок забанен",
+  "eventUnban": "Игрок разбанен",
+  "eventRulesUpdate": "Правила комнаты обновлены",
   "myPackDefault": "Мой пак",
   "roomEditorTitle": "Темы и вопросы",
   "roomIdLabel": "Комната: {id}",
@@ -161,6 +294,11 @@
   "round1": "Раунд 1",
   "addQuestion": "Добавить вопрос",
   "questionAdded": "Вопрос добавлен",
+  "questionUpdated": "Вопрос обновлён",
+  "questionDeleted": "Вопрос удалён",
+  "editAction": "Изменить",
+  "deleteAction": "Удалить",
+  "deleteQuestionTitle": "Удалить вопрос",
   "exportPackageTitle": "Экспорт пакета",
   "exportJson": "Экспорт JSON",
   "importJson": "Импорт JSON",
@@ -232,9 +370,5 @@
   "popupInfoTitle": "Сообщение",
   "popupOk": "ОК"
 }
-
-
-
-
 
 

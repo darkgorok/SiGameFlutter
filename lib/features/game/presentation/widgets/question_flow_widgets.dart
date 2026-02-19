@@ -263,10 +263,9 @@ class _BoardPlayersStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activePlayers = players
-        .where((p) => p.role != PlayerRole.spectator)
-        .toList()
-      ..sort((a, b) => b.score.compareTo(a.score));
+    final activePlayers =
+        players.where((p) => p.role != PlayerRole.spectator).toList()
+          ..sort((a, b) => b.score.compareTo(a.score));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -587,6 +586,21 @@ class ActiveQuestionPanel extends ConsumerWidget {
     if (active == null) {
       return const SizedBox.shrink();
     }
+    final players = ref.watch(playersStreamProvider(roomId)).valueOrNull;
+    String resolvePlayerName(String uid) {
+      if (uid.isEmpty) {
+        return uid;
+      }
+      if (players != null) {
+        for (final p in players) {
+          if (p.uid == uid) {
+            return p.nickname;
+          }
+        }
+      }
+      return uid;
+    }
+
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final isHost = uid == room.hostUid;
     final actions = ref.read(questionActionsProvider);
@@ -659,7 +673,7 @@ class ActiveQuestionPanel extends ConsumerWidget {
                         children: [
                           if (room.currentAttemptUid != null)
                             Text(
-                              '${context.l10n.answeringNow}: ${room.currentAttemptUid}',
+                              '${context.l10n.answeringNow}: ${resolvePlayerName(room.currentAttemptUid!)}',
                               textAlign: TextAlign.center,
                             ),
                           const SizedBox(height: 8),
@@ -741,8 +755,8 @@ class _QuestionMediaPreview extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               mediaType == QuestionMediaType.audio
-                  ? 'Audio media'
-                  : 'Video media',
+                  ? context.l10n.mediaPreviewAudio
+                  : context.l10n.mediaPreviewVideo,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -790,9 +804,9 @@ class _QuestionMediaPreview extends StatelessWidget {
     Object error,
     StackTrace? stackTrace,
   ) {
-    return const SizedBox(
+    return SizedBox(
       height: 280,
-      child: Center(child: Text('Media preview unavailable')),
+      child: Center(child: Text(context.l10n.mediaPreviewUnavailable)),
     );
   }
 }
@@ -975,10 +989,29 @@ class HostJudgePanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actions = ref.read(questionActionsProvider);
+    final players = ref.watch(playersStreamProvider(roomId)).valueOrNull;
+    String resolvePlayerName(String uid) {
+      if (uid.isEmpty) {
+        return uid;
+      }
+      if (players != null) {
+        for (final player in players) {
+          if (player.uid == uid) {
+            return player.nickname;
+          }
+        }
+      }
+      return uid;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(context.l10n.whoAnswered(room.currentAttemptUid ?? '-')),
+        Text(
+          context.l10n.whoAnswered(
+            resolvePlayerName(room.currentAttemptUid ?? '-'),
+          ),
+        ),
         Text(context.l10n.hostVoiceCheck),
         if (room.activeQuestion != null &&
             room.activeQuestion!.aliases.isNotEmpty)

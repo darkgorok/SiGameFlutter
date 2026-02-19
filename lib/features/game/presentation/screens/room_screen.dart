@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/presentation/loading_screen.dart';
 import '../../../../core/hotkeys.dart';
 import '../../../../core/l10n.dart';
+import '../../../../core/runtime_flags.dart';
 import '../../application/game_providers.dart';
 import '../../game_models.dart';
 import '../controllers/game_ui_permissions.dart';
@@ -32,7 +33,9 @@ class RoomScreen extends ConsumerStatefulWidget {
 
 class _RoomScreenState extends ConsumerState<RoomScreen> {
   bool _cleanView = false;
-  final _autoFlowController = RoomAutoFlowController(enabled: true);
+  final _autoFlowController = RoomAutoFlowController(
+    enabled: e2eAutoFlowEnabled,
+  );
   LogicalKeyboardKey _answerHotkey = AppHotkeys.defaultAnswerHotkey;
 
   @override
@@ -111,11 +114,34 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                   break;
                 }
               }
-              final myRole = me?.role ?? PlayerRole.player;
+              final myRole = me?.role ?? widget.role;
               final isHost = room.hostUid == uid;
               final canResume = room.pausedByUid == uid || isHost;
               final canEdit = isHost || myRole == PlayerRole.editor;
               final canPause = myRole != PlayerRole.spectator || isHost;
+              final isPaused = room.status == GameStatus.paused;
+              final isLobby =
+                  room.status == GameStatus.lobby &&
+                  room.phase == GamePhase.lobby;
+              final isFinalState =
+                  room.status == GameStatus.finalRound ||
+                  room.phase == GamePhase.finalSetup ||
+                  room.phase == GamePhase.finalWagering ||
+                  room.phase == GamePhase.finalAnswering ||
+                  room.phase == GamePhase.finalReveal;
+              final isCompletedState =
+                  room.status == GameStatus.completed ||
+                  room.phase == GamePhase.gameOver;
+              final canStartGame = isHost && isLobby;
+              final canAdvanceRound2 =
+                  isHost &&
+                  !isPaused &&
+                  !isFinalState &&
+                  !isCompletedState &&
+                  room.currentRound < 2;
+              final canStartFinalRound =
+                  isHost && !isPaused && !isFinalState && !isCompletedState;
+              final canPauseByState = canPause && !isCompletedState;
               final effectiveCleanView =
                   _cleanView || myRole == PlayerRole.spectator;
               final roomActions = ref.read(roomActionsProvider);
@@ -153,19 +179,25 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                         if (!isHost) return null;
                         switch (intent.action) {
                           case _HostAction.start:
-                            roomActions.startGame(widget.roomId);
+                            if (canStartGame) {
+                              roomActions.startGame(widget.roomId);
+                            }
                           case _HostAction.pauseToggle:
                             if (room.status == GameStatus.paused) {
                               if (canResume) {
                                 roomActions.resumeGame(widget.roomId);
                               }
-                            } else if (canPause) {
+                            } else if (canPauseByState) {
                               roomActions.pauseGame(widget.roomId);
                             }
                           case _HostAction.finalRound:
-                            roomActions.startFinalRound(widget.roomId);
+                            if (canStartFinalRound) {
+                              roomActions.startFinalRound(widget.roomId);
+                            }
                           case _HostAction.round2:
-                            roomActions.advanceToRound2(widget.roomId);
+                            if (canAdvanceRound2) {
+                              roomActions.advanceToRound2(widget.roomId);
+                            }
                         }
                         return null;
                       },

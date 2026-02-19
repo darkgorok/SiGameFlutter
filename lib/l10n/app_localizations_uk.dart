@@ -105,6 +105,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get roomPasswordLabel => 'Пароль (необов\'язково)';
 
   @override
+  String get invalidRoomPassword => 'Невірний пароль кімнати.';
+
+  @override
+  String get roomPasswordRequired => 'Для входу потрібен пароль кімнати.';
+
+  @override
   String get packFileRequired => 'Файл пака обов\'язковий';
 
   @override
@@ -341,6 +347,15 @@ class AppLocalizationsUk extends AppLocalizations {
   String get mediaLabel => 'Медіа';
 
   @override
+  String get mediaPreviewAudio => 'Аудіо-медіа';
+
+  @override
+  String get mediaPreviewVideo => 'Відео-медіа';
+
+  @override
+  String get mediaPreviewUnavailable => 'Попередній перегляд медіа недоступний';
+
+  @override
   String get openAnswerButton => 'Відкрити кнопку відповіді';
 
   @override
@@ -442,6 +457,81 @@ class AppLocalizationsUk extends AppLocalizations {
   String get placeWager => 'Поставити';
 
   @override
+  String get yourFinalAnswerLabel => 'Ваша фінальна відповідь';
+
+  @override
+  String get submitAnswer => 'Надіслати відповідь';
+
+  @override
+  String finalThemesList(Object themes) {
+    return 'Теми фіналу: $themes';
+  }
+
+  @override
+  String finalCurrentDeleter(Object name) {
+    return 'Зараз видаляє: $name';
+  }
+
+  @override
+  String finalPickDeleterFrom(Object names) {
+    return 'Ведучий має обрати того, хто видаляє, з: $names';
+  }
+
+  @override
+  String get finalSelectFirstDeleterTie =>
+      'Оберіть першого, хто видаляє (нічия):';
+
+  @override
+  String finalSelectNamed(Object name) {
+    return 'Обрати \"$name\"';
+  }
+
+  @override
+  String finalDeleteTurn(Object name) {
+    return 'Хід видалення: $name';
+  }
+
+  @override
+  String finalDeleteTheme(Object theme) {
+    return 'Видалити \"$theme\"';
+  }
+
+  @override
+  String currentAnsweringPlayer(Object name) {
+    return 'Зараз відповідає: $name';
+  }
+
+  @override
+  String finalRevealStep(int current, int total) {
+    return 'Крок розкриття фіналу: $current/$total';
+  }
+
+  @override
+  String currentRevealPlayer(Object name) {
+    return 'Зараз розкривається: $name';
+  }
+
+  @override
+  String get nowAnswering => 'Відповідає зараз';
+
+  @override
+  String get answerSubmitted => 'Відповідь надіслано';
+
+  @override
+  String get answerNotSubmitted => 'Відповідь не надіслано';
+
+  @override
+  String answerText(Object answer) {
+    return 'Текст відповіді: $answer';
+  }
+
+  @override
+  String get revealed => 'Розкрито';
+
+  @override
+  String get waitingReveal => 'Очікує розкриття';
+
+  @override
   String get discordVoiceInfo =>
       'Відповіді даються лише голосом у Discord. Ведучий відмічає результат кожної відповіді.';
 
@@ -474,6 +564,11 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
+  String playersCountSummary(int total, int active, int spectators) {
+    return 'Учасників: $total | Активних: $active | Глядачів: $spectators';
+  }
+
+  @override
   String get manualAdjustment => 'Ручне коригування';
 
   @override
@@ -487,6 +582,130 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get noEventsYet => 'Подій поки немає';
+
+  @override
+  String get eventQuestionAdd => 'Питання додано';
+
+  @override
+  String get eventQuestionAddBulk => 'Питання додано масово';
+
+  @override
+  String get eventQuestionUpdate => 'Питання оновлено';
+
+  @override
+  String get eventQuestionDelete => 'Питання видалено';
+
+  @override
+  String get eventPackSave => 'Пак збережено';
+
+  @override
+  String get eventPackApply => 'Пак застосовано до кімнати';
+
+  @override
+  String get eventTimerExpire => 'Таймер завершився';
+
+  @override
+  String get eventFinalRevealStart => 'Розкриття фіналу розпочато';
+
+  @override
+  String get eventFinalRevealEnd => 'Розкриття фіналу завершено';
+
+  @override
+  String get eventFinalRevealStep => 'Крок розкриття фіналу';
+
+  @override
+  String get eventAnswerSubmit => 'Голосову відповідь надіслано';
+
+  @override
+  String get eventAnswerSubmitNumeric => 'Числову відповідь надіслано';
+
+  @override
+  String get eventFinalStart => 'Фінальний раунд розпочато';
+
+  @override
+  String get eventJudge => 'Ведучий оцінив відповідь';
+
+  @override
+  String get eventAppealSubmit => 'Апеляцію надіслано';
+
+  @override
+  String get eventAppealResolve => 'Апеляцію розглянуто';
+
+  @override
+  String get eventScoreManual => 'Ручне коригування рахунку';
+
+  @override
+  String get eventPause => 'Гру поставлено на паузу';
+
+  @override
+  String get eventResume => 'Гру продовжено';
+
+  @override
+  String get eventFinalQuestionSet => 'Фінальне питання задано';
+
+  @override
+  String get eventFinalThemeDeleterSelected =>
+      'Обрано того, хто видаляє тему фіналу';
+
+  @override
+  String get eventFinalThemeDeleted => 'Тему фіналу видалено';
+
+  @override
+  String get eventFinalWagerOpen => 'Фінальні ставки відкрито';
+
+  @override
+  String get eventFinalAnswersOpen => 'Етап фінальних відповідей відкрито';
+
+  @override
+  String get eventFinalAnswerSubmit => 'Фінальну відповідь надіслано';
+
+  @override
+  String get eventFinalWager => 'Фінальну ставку надіслано';
+
+  @override
+  String get eventFinalMark => 'Результат фінальної відповіді відмічено';
+
+  @override
+  String get eventStart => 'Гру розпочато';
+
+  @override
+  String get eventQuestionPick => 'Питання обрано';
+
+  @override
+  String get eventBuzzOpen => 'Кнопку відповіді відкрито';
+
+  @override
+  String get eventCatTarget => 'Обрано отримувача Кота у мішку';
+
+  @override
+  String get eventWagerSet => 'Ставку встановлено';
+
+  @override
+  String get eventRoundNext => 'Перехід до наступного раунду';
+
+  @override
+  String get eventBuzz => 'Гравець натиснув кнопку';
+
+  @override
+  String get eventRoomCreated => 'Кімнату створено';
+
+  @override
+  String get eventJoin => 'Гравець увійшов до кімнати';
+
+  @override
+  String get eventRoleChange => 'Роль гравця змінено';
+
+  @override
+  String get eventKick => 'Гравця виключено';
+
+  @override
+  String get eventBan => 'Гравця забанено';
+
+  @override
+  String get eventUnban => 'Гравця розбанено';
+
+  @override
+  String get eventRulesUpdate => 'Правила кімнати оновлено';
 
   @override
   String get myPackDefault => 'Мій пак';
@@ -519,6 +738,21 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get questionAdded => 'Питання додано';
+
+  @override
+  String get questionUpdated => 'Питання оновлено';
+
+  @override
+  String get questionDeleted => 'Питання видалено';
+
+  @override
+  String get editAction => 'Змінити';
+
+  @override
+  String get deleteAction => 'Видалити';
+
+  @override
+  String get deleteQuestionTitle => 'Видалити питання';
 
   @override
   String get exportPackageTitle => 'Експорт пакета';

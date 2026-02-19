@@ -179,3 +179,68 @@ test('isFeatureEnabled uses cache within ttl', async () => {
     Date.now = realNow;
   }
 });
+
+test('logEvent uses canonical message by type and fallback for unknown type', async () => {
+  const writes = [];
+  const db = {
+    collection(name) {
+      assert.equal(name, 'rooms');
+      return {
+        doc(roomId) {
+          return {
+            collection(subName) {
+              assert.equal(subName, 'events');
+              return {
+                async add(payload) {
+                  writes.push({ roomId, payload });
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const support = createCommandSupport({
+    db,
+    FieldValue: { serverTimestamp: () => 123 },
+    functionsLib: { https: { HttpsError } },
+    PLAYER_ROLE: { HOST: 'host', EDITOR: 'editor', PLAYER: 'player' },
+    featureFlagsDefaults: { bulkQuestionImport: true, timerAutoTick: true },
+    featureFlagsTtlMs: 30_000,
+  });
+
+  await support.logEvent('r1', 'u1', 'pause', 'garbled text');
+  await support.logEvent('r1', 'u1', 'custom_type', 'Custom message');
+  await support.logEvent('r1', 'u1', 'custom_empty', '');
+
+  assert.equal(writes.length, 3);
+  assert.deepEqual(writes[0], {
+    roomId: 'r1',
+    payload: {
+      actorUid: 'u1',
+      type: 'pause',
+      message: 'Game paused',
+      createdAt: 123,
+    },
+  });
+  assert.deepEqual(writes[1], {
+    roomId: 'r1',
+    payload: {
+      actorUid: 'u1',
+      type: 'custom_type',
+      message: 'Custom message',
+      createdAt: 123,
+    },
+  });
+  assert.deepEqual(writes[2], {
+    roomId: 'r1',
+    payload: {
+      actorUid: 'u1',
+      type: 'custom_empty',
+      message: 'custom_empty',
+      createdAt: 123,
+    },
+  });
+});

@@ -274,6 +274,18 @@ abstract class AppLocalizations {
   /// **'Password (optional)'**
   String get roomPasswordLabel;
 
+  /// No description provided for @invalidRoomPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid room password.'**
+  String get invalidRoomPassword;
+
+  /// No description provided for @roomPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Room password is required.'**
+  String get roomPasswordRequired;
+
   /// No description provided for @packFileRequired.
   ///
   /// In en, this message translates to:
@@ -712,6 +724,24 @@ abstract class AppLocalizations {
   /// **'Media'**
   String get mediaLabel;
 
+  /// No description provided for @mediaPreviewAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio media'**
+  String get mediaPreviewAudio;
+
+  /// No description provided for @mediaPreviewVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video media'**
+  String get mediaPreviewVideo;
+
+  /// No description provided for @mediaPreviewUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Media preview unavailable'**
+  String get mediaPreviewUnavailable;
+
   /// No description provided for @openAnswerButton.
   ///
   /// In en, this message translates to:
@@ -892,6 +922,114 @@ abstract class AppLocalizations {
   /// **'Place wager'**
   String get placeWager;
 
+  /// No description provided for @yourFinalAnswerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your final answer'**
+  String get yourFinalAnswerLabel;
+
+  /// No description provided for @submitAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit answer'**
+  String get submitAnswer;
+
+  /// No description provided for @finalThemesList.
+  ///
+  /// In en, this message translates to:
+  /// **'Final themes: {themes}'**
+  String finalThemesList(Object themes);
+
+  /// No description provided for @finalCurrentDeleter.
+  ///
+  /// In en, this message translates to:
+  /// **'Current deleter: {name}'**
+  String finalCurrentDeleter(Object name);
+
+  /// No description provided for @finalPickDeleterFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Host must pick deleter from: {names}'**
+  String finalPickDeleterFrom(Object names);
+
+  /// No description provided for @finalSelectFirstDeleterTie.
+  ///
+  /// In en, this message translates to:
+  /// **'Select first deleter (tie):'**
+  String get finalSelectFirstDeleterTie;
+
+  /// No description provided for @finalSelectNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Select \"{name}\"'**
+  String finalSelectNamed(Object name);
+
+  /// No description provided for @finalDeleteTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete turn: {name}'**
+  String finalDeleteTurn(Object name);
+
+  /// No description provided for @finalDeleteTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{theme}\"'**
+  String finalDeleteTheme(Object theme);
+
+  /// No description provided for @currentAnsweringPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Current answering player: {name}'**
+  String currentAnsweringPlayer(Object name);
+
+  /// No description provided for @finalRevealStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Final reveal step: {current}/{total}'**
+  String finalRevealStep(int current, int total);
+
+  /// No description provided for @currentRevealPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Current reveal: {name}'**
+  String currentRevealPlayer(Object name);
+
+  /// No description provided for @nowAnswering.
+  ///
+  /// In en, this message translates to:
+  /// **'Now answering'**
+  String get nowAnswering;
+
+  /// No description provided for @answerSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer submitted'**
+  String get answerSubmitted;
+
+  /// No description provided for @answerNotSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer not submitted'**
+  String get answerNotSubmitted;
+
+  /// No description provided for @answerText.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer text: {answer}'**
+  String answerText(Object answer);
+
+  /// No description provided for @revealed.
+  ///
+  /// In en, this message translates to:
+  /// **'Revealed'**
+  String get revealed;
+
+  /// No description provided for @waitingReveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting reveal'**
+  String get waitingReveal;
+
   /// No description provided for @discordVoiceInfo.
   ///
   /// In en, this message translates to:
@@ -946,6 +1084,12 @@ abstract class AppLocalizations {
   /// **'Stats: +{correct} / -{wrong} | Buzz: {buzz}'**
   String statsLine(Object buzz, Object correct, Object wrong);
 
+  /// No description provided for @playersCountSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Players: {total} | Active: {active} | Spectators: {spectators}'**
+  String playersCountSummary(int total, int active, int spectators);
+
   /// No description provided for @manualAdjustment.
   ///
   /// In en, this message translates to:
@@ -975,6 +1119,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No events yet'**
   String get noEventsYet;
+
+  /// No description provided for @eventQuestionAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Question added'**
+  String get eventQuestionAdd;
+
+  /// No description provided for @eventQuestionAddBulk.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions added in bulk'**
+  String get eventQuestionAddBulk;
+
+  /// No description provided for @eventQuestionUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Question updated'**
+  String get eventQuestionUpdate;
+
+  /// No description provided for @eventQuestionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Question deleted'**
+  String get eventQuestionDelete;
+
+  /// No description provided for @eventPackSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Pack saved'**
+  String get eventPackSave;
+
+  /// No description provided for @eventPackApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Pack applied to room'**
+  String get eventPackApply;
+
+  /// No description provided for @eventTimerExpire.
+  ///
+  /// In en, this message translates to:
+  /// **'Timer expired'**
+  String get eventTimerExpire;
+
+  /// No description provided for @eventFinalRevealStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Final reveal started'**
+  String get eventFinalRevealStart;
+
+  /// No description provided for @eventFinalRevealEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Final reveal finished'**
+  String get eventFinalRevealEnd;
+
+  /// No description provided for @eventFinalRevealStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Final reveal step'**
+  String get eventFinalRevealStep;
+
+  /// No description provided for @eventAnswerSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice answer submitted'**
+  String get eventAnswerSubmit;
+
+  /// No description provided for @eventAnswerSubmitNumeric.
+  ///
+  /// In en, this message translates to:
+  /// **'Numeric answer submitted'**
+  String get eventAnswerSubmitNumeric;
+
+  /// No description provided for @eventFinalStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Final round started'**
+  String get eventFinalStart;
+
+  /// No description provided for @eventJudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Host judged the answer'**
+  String get eventJudge;
+
+  /// No description provided for @eventAppealSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Appeal submitted'**
+  String get eventAppealSubmit;
+
+  /// No description provided for @eventAppealResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Appeal resolved'**
+  String get eventAppealResolve;
+
+  /// No description provided for @eventScoreManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual score adjustment'**
+  String get eventScoreManual;
+
+  /// No description provided for @eventPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Game paused'**
+  String get eventPause;
+
+  /// No description provided for @eventResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Game resumed'**
+  String get eventResume;
+
+  /// No description provided for @eventFinalQuestionSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Final question set'**
+  String get eventFinalQuestionSet;
+
+  /// No description provided for @eventFinalThemeDeleterSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Final theme deleter selected'**
+  String get eventFinalThemeDeleterSelected;
+
+  /// No description provided for @eventFinalThemeDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Final theme deleted'**
+  String get eventFinalThemeDeleted;
+
+  /// No description provided for @eventFinalWagerOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Final wagers opened'**
+  String get eventFinalWagerOpen;
+
+  /// No description provided for @eventFinalAnswersOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Final answers stage opened'**
+  String get eventFinalAnswersOpen;
+
+  /// No description provided for @eventFinalAnswerSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Final answer submitted'**
+  String get eventFinalAnswerSubmit;
+
+  /// No description provided for @eventFinalWager.
+  ///
+  /// In en, this message translates to:
+  /// **'Final wager submitted'**
+  String get eventFinalWager;
+
+  /// No description provided for @eventFinalMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Final answer result marked'**
+  String get eventFinalMark;
+
+  /// No description provided for @eventStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Game started'**
+  String get eventStart;
+
+  /// No description provided for @eventQuestionPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Question picked'**
+  String get eventQuestionPick;
+
+  /// No description provided for @eventBuzzOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Buzz button opened'**
+  String get eventBuzzOpen;
+
+  /// No description provided for @eventCatTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Cat in a bag target selected'**
+  String get eventCatTarget;
+
+  /// No description provided for @eventWagerSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wager set'**
+  String get eventWagerSet;
+
+  /// No description provided for @eventRoundNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Round advanced'**
+  String get eventRoundNext;
+
+  /// No description provided for @eventBuzz.
+  ///
+  /// In en, this message translates to:
+  /// **'Player buzzed'**
+  String get eventBuzz;
+
+  /// No description provided for @eventRoomCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Room created'**
+  String get eventRoomCreated;
+
+  /// No description provided for @eventJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Player joined room'**
+  String get eventJoin;
+
+  /// No description provided for @eventRoleChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Player role changed'**
+  String get eventRoleChange;
+
+  /// No description provided for @eventKick.
+  ///
+  /// In en, this message translates to:
+  /// **'Player kicked'**
+  String get eventKick;
+
+  /// No description provided for @eventBan.
+  ///
+  /// In en, this message translates to:
+  /// **'Player banned'**
+  String get eventBan;
+
+  /// No description provided for @eventUnban.
+  ///
+  /// In en, this message translates to:
+  /// **'Player unbanned'**
+  String get eventUnban;
+
+  /// No description provided for @eventRulesUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Room rules updated'**
+  String get eventRulesUpdate;
 
   /// No description provided for @myPackDefault.
   ///
@@ -1035,6 +1425,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Question added'**
   String get questionAdded;
+
+  /// No description provided for @questionUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Question updated'**
+  String get questionUpdated;
+
+  /// No description provided for @questionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Question deleted'**
+  String get questionDeleted;
+
+  /// No description provided for @editAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editAction;
+
+  /// No description provided for @deleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAction;
+
+  /// No description provided for @deleteQuestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete question'**
+  String get deleteQuestionTitle;
 
   /// No description provided for @exportPackageTitle.
   ///

@@ -51,6 +51,8 @@
   "roomNameRequired": "Room name is required",
   "createRoomDialogTitle": "Create room",
   "roomPasswordLabel": "Password (optional)",
+  "invalidRoomPassword": "Invalid room password.",
+  "roomPasswordRequired": "Room password is required.",
   "packFileRequired": "Pack file is required",
   "enterRoomPasswordTitle": "Enter password for: {roomName}",
   "@enterRoomPasswordTitle": {
@@ -157,6 +159,9 @@
   "noQuestionsCurrentRound": "No questions for current round",
   "activeQuestionHeader": "Active: {theme} | {type} | {cost}",
   "mediaLabel": "Media",
+  "mediaPreviewAudio": "Audio media",
+  "mediaPreviewVideo": "Video media",
+  "mediaPreviewUnavailable": "Media preview unavailable",
   "openAnswerButton": "Open answer button",
   "answeringNow": "Answering",
   "answeredByVoice": "Answered by voice",
@@ -187,6 +192,79 @@
   "questionLabel": "Question",
   "yourFinalWager": "Your final wager",
   "placeWager": "Place wager",
+  "yourFinalAnswerLabel": "Your final answer",
+  "submitAnswer": "Submit answer",
+  "finalThemesList": "Final themes: {themes}",
+  "@finalThemesList": {
+    "placeholders": {
+      "themes": {}
+    }
+  },
+  "finalCurrentDeleter": "Current deleter: {name}",
+  "@finalCurrentDeleter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalPickDeleterFrom": "Host must pick deleter from: {names}",
+  "@finalPickDeleterFrom": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "finalSelectFirstDeleterTie": "Select first deleter (tie):",
+  "finalSelectNamed": "Select \"{name}\"",
+  "@finalSelectNamed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalDeleteTurn": "Delete turn: {name}",
+  "@finalDeleteTurn": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalDeleteTheme": "Delete \"{theme}\"",
+  "@finalDeleteTheme": {
+    "placeholders": {
+      "theme": {}
+    }
+  },
+  "currentAnsweringPlayer": "Current answering player: {name}",
+  "@currentAnsweringPlayer": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalRevealStep": "Final reveal step: {current}/{total}",
+  "@finalRevealStep": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "currentRevealPlayer": "Current reveal: {name}",
+  "@currentRevealPlayer": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "nowAnswering": "Now answering",
+  "answerSubmitted": "Answer submitted",
+  "answerNotSubmitted": "Answer not submitted",
+  "answerText": "Answer text: {answer}",
+  "@answerText": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "revealed": "Revealed",
+  "waitingReveal": "Waiting reveal",
   "discordVoiceInfo": "Answers are given by voice in Discord. The host marks each result.",
   "playerWagerLine": "{name} | wager: {wager}",
   "decisionLabel": "Decision",
@@ -196,11 +274,66 @@
   "offline": "offline",
   "scoreLabel": "Score",
   "statsLine": "Stats: +{correct} / -{wrong} | Buzz: {buzz}",
+  "playersCountSummary": "Players: {total} | Active: {active} | Spectators: {spectators}",
+  "@playersCountSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      },
+      "spectators": {
+        "type": "int"
+      }
+    }
+  },
   "manualAdjustment": "Manual adjustment",
   "kick": "Kick",
   "ban": "Ban",
   "unban": "Unban",
   "noEventsYet": "No events yet",
+  "eventQuestionAdd": "Question added",
+  "eventQuestionAddBulk": "Questions added in bulk",
+  "eventQuestionUpdate": "Question updated",
+  "eventQuestionDelete": "Question deleted",
+  "eventPackSave": "Pack saved",
+  "eventPackApply": "Pack applied to room",
+  "eventTimerExpire": "Timer expired",
+  "eventFinalRevealStart": "Final reveal started",
+  "eventFinalRevealEnd": "Final reveal finished",
+  "eventFinalRevealStep": "Final reveal step",
+  "eventAnswerSubmit": "Voice answer submitted",
+  "eventAnswerSubmitNumeric": "Numeric answer submitted",
+  "eventFinalStart": "Final round started",
+  "eventJudge": "Host judged the answer",
+  "eventAppealSubmit": "Appeal submitted",
+  "eventAppealResolve": "Appeal resolved",
+  "eventScoreManual": "Manual score adjustment",
+  "eventPause": "Game paused",
+  "eventResume": "Game resumed",
+  "eventFinalQuestionSet": "Final question set",
+  "eventFinalThemeDeleterSelected": "Final theme deleter selected",
+  "eventFinalThemeDeleted": "Final theme deleted",
+  "eventFinalWagerOpen": "Final wagers opened",
+  "eventFinalAnswersOpen": "Final answers stage opened",
+  "eventFinalAnswerSubmit": "Final answer submitted",
+  "eventFinalWager": "Final wager submitted",
+  "eventFinalMark": "Final answer result marked",
+  "eventStart": "Game started",
+  "eventQuestionPick": "Question picked",
+  "eventBuzzOpen": "Buzz button opened",
+  "eventCatTarget": "Cat in a bag target selected",
+  "eventWagerSet": "Wager set",
+  "eventRoundNext": "Round advanced",
+  "eventBuzz": "Player buzzed",
+  "eventRoomCreated": "Room created",
+  "eventJoin": "Player joined room",
+  "eventRoleChange": "Player role changed",
+  "eventKick": "Player kicked",
+  "eventBan": "Player banned",
+  "eventUnban": "Player unbanned",
+  "eventRulesUpdate": "Room rules updated",
   "myPackDefault": "My pack",
   "roomEditorTitle": "Themes and questions",
   "roomIdLabel": "Room: {id}",
@@ -211,6 +344,11 @@
   "round1": "Round 1",
   "addQuestion": "Add question",
   "questionAdded": "Question added",
+  "questionUpdated": "Question updated",
+  "questionDeleted": "Question deleted",
+  "editAction": "Edit",
+  "deleteAction": "Delete",
+  "deleteQuestionTitle": "Delete question",
   "exportPackageTitle": "Package export",
   "exportJson": "Export JSON",
   "importJson": "Import JSON",
@@ -282,9 +420,5 @@
   "popupInfoTitle": "Message",
   "popupOk": "OK"
 }
-
-
-
-
 
 

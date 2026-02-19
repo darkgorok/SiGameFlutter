@@ -215,7 +215,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                         this.context,
                         message: editingQuestionId == null
                             ? l10n.questionAdded
-                            : 'Question updated',
+                            : l10n.questionUpdated,
                         type: AppPopupType.success,
                       );
                     },
@@ -308,7 +308,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                           'room_editor_question_tile_${q.id}_${q.type.value}_${q.mediaType.value}',
                         ),
                         title: Text(
-                          'R${q.round} | ${q.theme} | ${q.cost} | ${q.type.localizedLabel(context)}',
+                          '${context.l10n.roundLabel} ${q.round} | ${q.theme} | ${q.cost} | ${q.type.localizedLabel(context)}',
                         ),
                         subtitle: Text(
                           '${q.text}\n${q.mediaUrl.isEmpty ? '' : '${context.l10n.mediaLabel}: ${q.mediaType.localizedLabel(context)}'}',
@@ -323,7 +323,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                               key: ValueKey(
                                 'room_editor_edit_question_button_${q.id}',
                               ),
-                              tooltip: 'Edit',
+                              tooltip: context.l10n.editAction,
                               onPressed: q.used
                                   ? null
                                   : () => setState(() {
@@ -344,7 +344,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                               key: ValueKey(
                                 'room_editor_delete_question_button_${q.id}',
                               ),
-                              tooltip: 'Delete',
+                              tooltip: context.l10n.deleteAction,
                               onPressed: q.used
                                   ? null
                                   : () async {
@@ -353,8 +353,8 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                                           await showDialog<bool>(
                                             context: this.context,
                                             builder: (ctx) => AlertDialog(
-                                              title: const Text(
-                                                'Delete question',
+                                              title: Text(
+                                                l10n.deleteQuestionTitle,
                                               ),
                                               content: Text(q.text),
                                               actions: [
@@ -368,7 +368,9 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                                                   onPressed: () => Navigator.of(
                                                     ctx,
                                                   ).pop(true),
-                                                  child: const Text('Delete'),
+                                                  child: Text(
+                                                    l10n.deleteAction,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -388,7 +390,7 @@ class _RoomEditorScreenState extends ConsumerState<RoomEditorScreen> {
                                       }
                                       showAppPopup(
                                         this.context,
-                                        message: 'Question deleted',
+                                        message: l10n.questionDeleted,
                                         type: AppPopupType.success,
                                       );
                                     },

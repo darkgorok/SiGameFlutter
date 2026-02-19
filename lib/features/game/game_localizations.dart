@@ -116,3 +116,94 @@ extension FinalResultL10n on FinalResult {
     }
   }
 }
+
+extension GameEventL10n on GameEventModel {
+  String localizedMessage(BuildContext context) {
+    final l10n = context.l10n;
+    switch (type) {
+      case 'question_add':
+        return l10n.eventQuestionAdd;
+      case 'question_add_bulk':
+        return l10n.eventQuestionAddBulk;
+      case 'question_update':
+        return l10n.eventQuestionUpdate;
+      case 'question_delete':
+        return l10n.eventQuestionDelete;
+      case 'pack_save':
+        return l10n.eventPackSave;
+      case 'pack_apply':
+        return l10n.eventPackApply;
+      case 'timer_expire':
+        return l10n.eventTimerExpire;
+      case 'final_reveal_start':
+        return l10n.eventFinalRevealStart;
+      case 'final_reveal_end':
+        return l10n.eventFinalRevealEnd;
+      case 'final_reveal_step':
+        return l10n.eventFinalRevealStep;
+      case 'answer_submit':
+        return l10n.eventAnswerSubmit;
+      case 'answer_submit_numeric':
+        return l10n.eventAnswerSubmitNumeric;
+      case 'final_start':
+        return l10n.eventFinalStart;
+      case 'judge':
+        return l10n.eventJudge;
+      case 'appeal_submit':
+        return l10n.eventAppealSubmit;
+      case 'appeal_resolve':
+        return l10n.eventAppealResolve;
+      case 'score_manual':
+        return l10n.eventScoreManual;
+      case 'pause':
+        return l10n.eventPause;
+      case 'resume':
+        return l10n.eventResume;
+      case 'final_question_set':
+        return l10n.eventFinalQuestionSet;
+      case 'final_theme_deleter_selected':
+        return l10n.eventFinalThemeDeleterSelected;
+      case 'final_theme_deleted':
+        return l10n.eventFinalThemeDeleted;
+      case 'final_wager_open':
+        return l10n.eventFinalWagerOpen;
+      case 'final_answers_open':
+        return l10n.eventFinalAnswersOpen;
+      case 'final_answer_submit':
+        return l10n.eventFinalAnswerSubmit;
+      case 'final_wager':
+        return l10n.eventFinalWager;
+      case 'final_mark':
+        return l10n.eventFinalMark;
+      case 'start':
+        return l10n.eventStart;
+      case 'question_pick':
+        return l10n.eventQuestionPick;
+      case 'buzz_open':
+        return l10n.eventBuzzOpen;
+      case 'cat_target':
+        return l10n.eventCatTarget;
+      case 'wager_set':
+        return l10n.eventWagerSet;
+      case 'round_next':
+        return l10n.eventRoundNext;
+      case 'buzz':
+        return l10n.eventBuzz;
+      case 'room_created':
+        return l10n.eventRoomCreated;
+      case 'join':
+        return l10n.eventJoin;
+      case 'role_change':
+        return l10n.eventRoleChange;
+      case 'kick':
+        return l10n.eventKick;
+      case 'ban':
+        return l10n.eventBan;
+      case 'unban':
+        return l10n.eventUnban;
+      case 'rules_update':
+        return l10n.eventRulesUpdate;
+    }
+    return message.trim().isEmpty ? type : message;
+  }
+}

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../application/game_providers.dart';
 import '../../game_models.dart';
+import '../player_roster_utils.dart';
 
 class RoomAutoFlowController {
   RoomAutoFlowController({required this.enabled});
@@ -312,7 +313,15 @@ class RoomAutoFlowController {
     }
 
     if (room.phase == GamePhase.finalSetup) {
-      if (room.finalThemePool.length > 1) {
+      if ((room.finalTheme ?? '').isNotEmpty &&
+          (room.finalQuestion ?? '').isNotEmpty) {
+        _queueAction(
+          key: 'final_open_wagers',
+          delay: const Duration(seconds: 2),
+          action: () => finalActions.openFinalWagers(roomId),
+          mounted: mounted,
+        );
+      } else if (room.finalThemePool.length > 1) {
         if (room.finalThemeDeleteNeedsSelection &&
             (room.finalThemeDeleteCurrentUid ?? '').isEmpty &&
             room.finalThemeDeleteCandidates.isNotEmpty) {
@@ -338,26 +347,6 @@ class RoomAutoFlowController {
             mounted: mounted,
           );
         }
-      } else if ((room.finalTheme ?? '').isEmpty ||
-          (room.finalQuestion ?? '').isEmpty) {
-        _queueAction(
-          key: 'final_set_question',
-          delay: const Duration(seconds: 2),
-          action: () => finalActions.setFinalQuestion(
-            roomId: roomId,
-            theme: 'Final',
-            question: 'Final question',
-            answer: 'Final answer',
-          ),
-          mounted: mounted,
-        );
-      } else {
-        _queueAction(
-          key: 'final_open_wagers',
-          delay: const Duration(seconds: 2),
-          action: () => finalActions.openFinalWagers(roomId),
-          mounted: mounted,
-        );
       }
       return;
     }
@@ -378,10 +367,10 @@ class RoomAutoFlowController {
           mounted: mounted,
         );
       } else {
-        final allSubmitted = room.finalEligibleUids.every((eligibleUid) {
-          final player = _findByUid(players, eligibleUid);
-          return player.uid.isNotEmpty && player.finalWagerSubmitted;
-        });
+        final allSubmitted = allFinalWagersSubmitted(
+          eligibleUids: room.finalEligibleUids,
+          players: players,
+        );
         if (allSubmitted) {
           _queueAction(
             key: 'final_open_answers',
@@ -502,9 +491,9 @@ class RoomAutoFlowController {
     List<PlayerModel> players,
     List<String> eligibleUids,
   ) {
-    for (final player in players) {
-      if (eligibleUids.contains(player.uid) &&
-          player.finalResult == FinalResult.pending) {
+    for (final eligibleUid in eligibleUids) {
+      final player = _findByUid(players, eligibleUid);
+      if (player.uid.isNotEmpty && player.finalResult == FinalResult.pending) {
         return player;
       }
     }

@@ -105,6 +105,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomPasswordLabel => 'Password (optional)';
 
   @override
+  String get invalidRoomPassword => 'Invalid room password.';
+
+  @override
+  String get roomPasswordRequired => 'Room password is required.';
+
+  @override
   String get packFileRequired => 'Pack file is required';
 
   @override
@@ -342,6 +348,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaLabel => 'Media';
 
   @override
+  String get mediaPreviewAudio => 'Audio media';
+
+  @override
+  String get mediaPreviewVideo => 'Video media';
+
+  @override
+  String get mediaPreviewUnavailable => 'Media preview unavailable';
+
+  @override
   String get openAnswerButton => 'Open answer button';
 
   @override
@@ -441,6 +456,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get placeWager => 'Place wager';
 
   @override
+  String get yourFinalAnswerLabel => 'Your final answer';
+
+  @override
+  String get submitAnswer => 'Submit answer';
+
+  @override
+  String finalThemesList(Object themes) {
+    return 'Final themes: $themes';
+  }
+
+  @override
+  String finalCurrentDeleter(Object name) {
+    return 'Current deleter: $name';
+  }
+
+  @override
+  String finalPickDeleterFrom(Object names) {
+    return 'Host must pick deleter from: $names';
+  }
+
+  @override
+  String get finalSelectFirstDeleterTie => 'Select first deleter (tie):';
+
+  @override
+  String finalSelectNamed(Object name) {
+    return 'Select \"$name\"';
+  }
+
+  @override
+  String finalDeleteTurn(Object name) {
+    return 'Delete turn: $name';
+  }
+
+  @override
+  String finalDeleteTheme(Object theme) {
+    return 'Delete \"$theme\"';
+  }
+
+  @override
+  String currentAnsweringPlayer(Object name) {
+    return 'Current answering player: $name';
+  }
+
+  @override
+  String finalRevealStep(int current, int total) {
+    return 'Final reveal step: $current/$total';
+  }
+
+  @override
+  String currentRevealPlayer(Object name) {
+    return 'Current reveal: $name';
+  }
+
+  @override
+  String get nowAnswering => 'Now answering';
+
+  @override
+  String get answerSubmitted => 'Answer submitted';
+
+  @override
+  String get answerNotSubmitted => 'Answer not submitted';
+
+  @override
+  String answerText(Object answer) {
+    return 'Answer text: $answer';
+  }
+
+  @override
+  String get revealed => 'Revealed';
+
+  @override
+  String get waitingReveal => 'Waiting reveal';
+
+  @override
   String get discordVoiceInfo =>
       'Answers are given by voice in Discord. The host marks each result.';
 
@@ -473,6 +562,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playersCountSummary(int total, int active, int spectators) {
+    return 'Players: $total | Active: $active | Spectators: $spectators';
+  }
+
+  @override
   String get manualAdjustment => 'Manual adjustment';
 
   @override
@@ -486,6 +580,129 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noEventsYet => 'No events yet';
+
+  @override
+  String get eventQuestionAdd => 'Question added';
+
+  @override
+  String get eventQuestionAddBulk => 'Questions added in bulk';
+
+  @override
+  String get eventQuestionUpdate => 'Question updated';
+
+  @override
+  String get eventQuestionDelete => 'Question deleted';
+
+  @override
+  String get eventPackSave => 'Pack saved';
+
+  @override
+  String get eventPackApply => 'Pack applied to room';
+
+  @override
+  String get eventTimerExpire => 'Timer expired';
+
+  @override
+  String get eventFinalRevealStart => 'Final reveal started';
+
+  @override
+  String get eventFinalRevealEnd => 'Final reveal finished';
+
+  @override
+  String get eventFinalRevealStep => 'Final reveal step';
+
+  @override
+  String get eventAnswerSubmit => 'Voice answer submitted';
+
+  @override
+  String get eventAnswerSubmitNumeric => 'Numeric answer submitted';
+
+  @override
+  String get eventFinalStart => 'Final round started';
+
+  @override
+  String get eventJudge => 'Host judged the answer';
+
+  @override
+  String get eventAppealSubmit => 'Appeal submitted';
+
+  @override
+  String get eventAppealResolve => 'Appeal resolved';
+
+  @override
+  String get eventScoreManual => 'Manual score adjustment';
+
+  @override
+  String get eventPause => 'Game paused';
+
+  @override
+  String get eventResume => 'Game resumed';
+
+  @override
+  String get eventFinalQuestionSet => 'Final question set';
+
+  @override
+  String get eventFinalThemeDeleterSelected => 'Final theme deleter selected';
+
+  @override
+  String get eventFinalThemeDeleted => 'Final theme deleted';
+
+  @override
+  String get eventFinalWagerOpen => 'Final wagers opened';
+
+  @override
+  String get eventFinalAnswersOpen => 'Final answers stage opened';
+
+  @override
+  String get eventFinalAnswerSubmit => 'Final answer submitted';
+
+  @override
+  String get eventFinalWager => 'Final wager submitted';
+
+  @override
+  String get eventFinalMark => 'Final answer result marked';
+
+  @override
+  String get eventStart => 'Game started';
+
+  @override
+  String get eventQuestionPick => 'Question picked';
+
+  @override
+  String get eventBuzzOpen => 'Buzz button opened';
+
+  @override
+  String get eventCatTarget => 'Cat in a bag target selected';
+
+  @override
+  String get eventWagerSet => 'Wager set';
+
+  @override
+  String get eventRoundNext => 'Round advanced';
+
+  @override
+  String get eventBuzz => 'Player buzzed';
+
+  @override
+  String get eventRoomCreated => 'Room created';
+
+  @override
+  String get eventJoin => 'Player joined room';
+
+  @override
+  String get eventRoleChange => 'Player role changed';
+
+  @override
+  String get eventKick => 'Player kicked';
+
+  @override
+  String get eventBan => 'Player banned';
+
+  @override
+  String get eventUnban => 'Player unbanned';
+
+  @override
+  String get eventRulesUpdate => 'Room rules updated';
 
   @override
   String get myPackDefault => 'My pack';
@@ -518,6 +735,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get questionAdded => 'Question added';
+
+  @override
+  String get questionUpdated => 'Question updated';
+
+  @override
+  String get questionDeleted => 'Question deleted';
+
+  @override
+  String get editAction => 'Edit';
+
+  @override
+  String get deleteAction => 'Delete';
+
+  @override
+  String get deleteQuestionTitle => 'Delete question';
 
   @override
   String get exportPackageTitle => 'Package export';

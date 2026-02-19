@@ -130,22 +130,18 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
     } catch (e) {
       if (!mounted) return;
       final message = _joinRoomErrorMessage(e);
-      showAppPopup(
-        context,
-        message: message,
-        type: AppPopupType.error,
-      );
+      showAppPopup(context, message: message, type: AppPopupType.error);
     }
   }
 
   String _joinRoomErrorMessage(Object error) {
     if (error is AppException) {
       if (error.code == 'permission-denied') {
-        return 'Invalid room password.';
+        return context.l10n.invalidRoomPassword;
       }
       if (error.code == 'failed-precondition' &&
           error.message.toLowerCase().contains('password')) {
-        return 'Room password is required.';
+        return context.l10n.roomPasswordRequired;
       }
       return error.message;
     }

@@ -2063,6 +2063,102 @@ test('set_player_role to spectator for last pending final answerer auto-opens re
   assert.ok(String(room.phase) === 'final_reveal' || String(room.phase) === 'game_over');
 });
 
+test('single eligible final player flow works with extra spectators', { skip: !hasEmulator }, async () => {
+  const { gameCommandHandler } = require('../index');
+  const db = admin.firestore();
+
+  const hostUid = `host-final-single-${Date.now()}`;
+  const p1Uid = `${hostUid}-p1`;
+  const spectatorUid = `${hostUid}-spec`;
+  await Promise.all([
+    db.collection('profiles').doc(hostUid).set({ nickname: 'HostFinalSingle' }),
+    db.collection('profiles').doc(p1Uid).set({ nickname: 'P1FinalSingle' }),
+    db.collection('profiles').doc(spectatorUid).set({ nickname: 'SpecFinalSingle' }),
+  ]);
+
+  const call = (uid, command, data = {}, roomId = undefined) => {
+    const payload = { command, data };
+    if (roomId) payload.roomId = roomId;
+    return gameCommandHandler(payload, { auth: { uid } });
+  };
+
+  const create = await call(hostUid, 'create_room', { roomName: 'FinalSingleEligible' });
+  const roomId = create.roomId;
+  const roomRef = db.collection('rooms').doc(roomId);
+
+  await call(p1Uid, 'join_room', { role: 'player' }, roomId);
+  await call(spectatorUid, 'join_room', { role: 'spectator' }, roomId);
+  await roomRef.collection('players').doc(p1Uid).set(
+    {
+      connected: true,
+      role: 'player',
+      score: 500,
+      finalWager: 0,
+      finalWagerSubmitted: false,
+      finalAnswerSubmitted: false,
+      finalResult: 'pending',
+      finalRevealed: false,
+    },
+    { merge: true },
+  );
+  await roomRef.collection('players').doc(spectatorUid).set(
+    { connected: true, role: 'spectator', score: 900 },
+    { merge: true },
+  );
+  await roomRef.update({
+    status: 'final_round',
+    phase: 'final_setup',
+    finalThemePool: ['SingleTheme'],
+    finalTheme: 'SingleTheme',
+    finalQuestion: 'Single final question',
+    finalAnswer: 'Single final answer',
+    finalEligibleUids: [p1Uid],
+    timerDeadlineAtMs: null,
+    timerRemainingMs: null,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  await call(hostUid, 'open_final_wagers', {}, roomId);
+  let room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase), 'final_wagering');
+  assert.deepEqual(room.finalEligibleUids, [p1Uid]);
+
+  await assert.rejects(
+    () => call(hostUid, 'open_final_answers', {}, roomId),
+    (error) => error && error.code === 'failed-precondition',
+  );
+  await assert.rejects(
+    () => call(spectatorUid, 'submit_final_wager', { wager: 100 }, roomId),
+    (error) => error && error.code === 'permission-denied',
+  );
+
+  await call(p1Uid, 'submit_final_wager', { wager: 300 }, roomId);
+  await call(hostUid, 'open_final_answers', {}, roomId);
+  room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase), 'final_answering');
+  assert.deepEqual(room.finalAnswerOrder, [p1Uid]);
+  assert.equal(String(room.finalAnswerCurrentUid), p1Uid);
+
+  await assert.rejects(
+    () => call(spectatorUid, 'submit_final_answer', { answer: 'spec' }, roomId),
+    (error) => error && error.code === 'permission-denied',
+  );
+  await call(p1Uid, 'submit_final_answer', { answer: 'my final' }, roomId);
+  await call(hostUid, 'set_final_player_result', { targetUid: p1Uid, result: 'correct' }, roomId);
+  room = (await roomRef.get()).data() || {};
+  assert.equal(room.finalAnswerCurrentUid, null);
+
+  await call(hostUid, 'reveal_final', {}, roomId);
+  room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase), 'final_reveal');
+  assert.equal(String(room.finalRevealCurrentUid), p1Uid);
+
+  await call(hostUid, 'reveal_final', {}, roomId);
+  room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase), 'game_over');
+  assert.equal(String(room.status), 'completed');
+});
+
 test('final_reveal auto-heal normalizes broken reveal cursor after roster change', { skip: !hasEmulator }, async () => {
   const { gameCommandHandler } = require('../index');
   const db = admin.firestore();

@@ -114,6 +114,12 @@
         roomRef,
         room.currentRound,
       );
+      if (eligible.length === 0) {
+        throw new functionsLib.https.HttpsError(
+          'failed-precondition',
+          'No eligible players for final round',
+        );
+      }
 
       await roomRef.update(
         transitions.applyCommandTransition('start_final_round', {
@@ -374,6 +380,17 @@
           'Final theme and question must be selected before opening wagers',
         );
       }
+      const eligible = Array.isArray(room.finalEligibleUids)
+        ? room.finalEligibleUids
+          .map((v) => String(v || '').trim())
+          .filter((v) => v.length > 0)
+        : [];
+      if (eligible.length === 0) {
+        throw new functionsLib.https.HttpsError(
+          'failed-precondition',
+          'No eligible players for final wagering',
+        );
+      }
       const players = await roomRef.collection('players').get();
       const batch = db.batch();
       players.docs.forEach((p) => {
@@ -433,6 +450,12 @@
             .map((v) => String(v || '').trim())
             .filter((v) => v.length > 0)
           : [];
+        if (eligible.length === 0) {
+          throw new functionsLib.https.HttpsError(
+            'failed-precondition',
+            'No eligible players for final answering',
+          );
+        }
         const playersSnap = await tx.get(roomRef.collection('players'));
         const playersByUid = new Map(
           playersSnap.docs.map((doc) => [doc.id, doc.data() || {}]),
@@ -1600,7 +1623,5 @@
 module.exports = {
   createGameplayCommandHandlers,
 };
-
-
 
 

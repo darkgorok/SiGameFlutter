@@ -9,6 +9,7 @@ import '../../../../core/l10n.dart';
 import '../../application/game_providers.dart';
 import '../../game_localizations.dart';
 import '../../game_models.dart';
+import '../player_roster_utils.dart';
 
 class FinalRoundBoard extends ConsumerStatefulWidget {
   const FinalRoundBoard({
@@ -55,6 +56,59 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
     final actions = ref.read(finalActionsProvider);
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final players = playersAsync.valueOrNull ?? const <PlayerModel>[];
+    PlayerModel? me;
+    for (final player in players) {
+      if (player.uid == uid) {
+        me = player;
+        break;
+      }
+    }
+    final canOpenWagers =
+        isSetup &&
+        (room.finalTheme ?? '').isNotEmpty &&
+        (room.finalQuestion ?? '').isNotEmpty;
+    final wagersSubmitted = allFinalWagersSubmitted(
+      eligibleUids: room.finalEligibleUids,
+      players: players,
+    );
+    final canSubmitMyWager =
+        isWagering &&
+        widget.myRole != PlayerRole.spectator &&
+        room.finalEligibleUids.contains(uid) &&
+        (me?.finalWagerSubmitted != true);
+    final canSubmitMyFinalAnswer =
+        isAnswering &&
+        widget.myRole != PlayerRole.spectator &&
+        room.finalEligibleUids.contains(uid) &&
+        (room.finalAnswerCurrentUid ?? '') == uid &&
+        (me?.finalAnswerSubmitted != true);
+    var allFinalResultsMarked = room.finalEligibleUids.isNotEmpty;
+    for (final eligibleUid in room.finalEligibleUids) {
+      var finalResult = FinalResult.pending;
+      for (final player in players) {
+        if (player.uid == eligibleUid) {
+          finalResult = player.finalResult;
+          break;
+        }
+      }
+      if (finalResult == FinalResult.pending) {
+        allFinalResultsMarked = false;
+        break;
+      }
+    }
+    final canRevealFinalNow =
+        isReveal || (isAnswering && allFinalResultsMarked);
+    String resolvePlayerName(String uid) {
+      if (uid.isEmpty) {
+        return uid;
+      }
+      for (final player in players) {
+        if (player.uid == uid) {
+          return player.nickname;
+        }
+      }
+      return uid;
+    }
 
     return Padding(
       padding: const EdgeInsets.all(8),
@@ -151,18 +205,24 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
             ],
             if (room.finalThemePool.isNotEmpty) ...[
               Text(
-                'Final themes: ${room.finalThemePool.join(', ')}',
+                context.l10n.finalThemesList(room.finalThemePool.join(', ')),
                 style: const TextStyle(color: Color(0xFFE0EBFF)),
               ),
               if ((room.finalThemeDeleteCurrentUid ?? '').isNotEmpty)
                 Text(
-                  'Current deleter: ${room.finalThemeDeleteCurrentUid}',
+                  context.l10n.finalCurrentDeleter(
+                    resolvePlayerName(room.finalThemeDeleteCurrentUid!),
+                  ),
                   style: const TextStyle(color: Color(0xFFE0EBFF)),
                 ),
               if (room.finalThemeDeleteNeedsSelection &&
                   room.finalThemeDeleteCandidates.isNotEmpty)
                 Text(
-                  'Host must pick deleter from: ${room.finalThemeDeleteCandidates.join(', ')}',
+                  context.l10n.finalPickDeleterFrom(
+                    room.finalThemeDeleteCandidates
+                        .map(resolvePlayerName)
+                        .join(', '),
+                  ),
                   style: const TextStyle(color: Color(0xFFE0EBFF)),
                 ),
             ],
@@ -214,10 +274,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                           ),
                           ElevatedButton(
                             key: const ValueKey('final_open_wagers_button'),
-                            onPressed:
-                                isSetup &&
-                                    (room.finalTheme ?? '').isNotEmpty &&
-                                    (room.finalQuestion ?? '').isNotEmpty
+                            onPressed: canOpenWagers
                                 ? () => actions.openFinalWagers(widget.roomId)
                                 : null,
                             child: Text(context.l10n.openWagers),
@@ -229,7 +286,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                         if (room.finalThemeDeleteNeedsSelection &&
                             room.finalThemeDeleteCandidates.isNotEmpty) ...[
                           const SizedBox(height: 4),
-                          Text('Select first deleter (tie):'),
+                          Text(context.l10n.finalSelectFirstDeleterTie),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -245,14 +302,22 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                             targetUid: candidateUid,
                                           )
                                         : null,
-                                    child: Text('Select "$candidateUid"'),
+                                    child: Text(
+                                      context.l10n.finalSelectNamed(
+                                        resolvePlayerName(candidateUid),
+                                      ),
+                                    ),
                                   ),
                                 )
                                 .toList(),
                           ),
                         ],
                         Text(
-                          'Delete turn: ${room.finalThemeDeleteCurrentUid ?? '-'}',
+                          context.l10n.finalDeleteTurn(
+                            resolvePlayerName(
+                              room.finalThemeDeleteCurrentUid ?? '-',
+                            ),
+                          ),
                         ),
                         Wrap(
                           spacing: 8,
@@ -273,7 +338,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                       theme: theme,
                                     )
                                   : null,
-                              child: Text('Delete "$theme"'),
+                              child: Text(context.l10n.finalDeleteTheme(theme)),
                             );
                           }).toList(),
                         ),
@@ -291,8 +356,10 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                     children: [
                       ElevatedButton(
                         key: const ValueKey('final_open_answers_button'),
-                        onPressed: () =>
-                            actions.openFinalAnswers(widget.roomId),
+                        onPressed:
+                            room.finalEligibleUids.isNotEmpty && wagersSubmitted
+                            ? () => actions.openFinalAnswers(widget.roomId)
+                            : null,
                         child: Text(context.l10n.startVoiceAnswers),
                       ),
                     ],
@@ -308,7 +375,9 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                     children: [
                       ElevatedButton(
                         key: const ValueKey('final_reveal_button'),
-                        onPressed: () => actions.revealFinal(widget.roomId),
+                        onPressed: canRevealFinalNow
+                            ? () => actions.revealFinal(widget.roomId)
+                            : null,
                         child: Text(context.l10n.revealFinal),
                       ),
                     ],
@@ -327,22 +396,31 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
               ),
             if (isAnswering && (room.finalAnswerCurrentUid ?? '').isNotEmpty)
               Text(
-                'Current answering player: ${room.finalAnswerCurrentUid}',
+                context.l10n.currentAnsweringPlayer(
+                  resolvePlayerName(room.finalAnswerCurrentUid!),
+                ),
                 style: const TextStyle(color: Color(0xFFE0EBFF)),
               ),
             if (isReveal) ...[
               Text(
-                'Final reveal step: ${room.finalRevealIndex + 1}/${room.finalRevealOrder.length}',
+                context.l10n.finalRevealStep(
+                  room.finalRevealIndex + 1,
+                  room.finalRevealOrder.length,
+                ),
                 style: const TextStyle(color: Color(0xFFE0EBFF)),
               ),
               if ((room.finalRevealCurrentUid ?? '').isNotEmpty)
                 Text(
-                  'Current reveal: ${room.finalRevealCurrentUid}',
+                  context.l10n.currentRevealPlayer(
+                    resolvePlayerName(room.finalRevealCurrentUid!),
+                  ),
                   style: const TextStyle(color: Color(0xFFE0EBFF)),
                 ),
             ],
             const SizedBox(height: 8),
-            if (isWagering && widget.myRole != PlayerRole.spectator)
+            if (isWagering &&
+                widget.myRole != PlayerRole.spectator &&
+                room.finalEligibleUids.contains(uid))
               Row(
                 children: [
                   Expanded(
@@ -358,10 +436,12 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     key: const ValueKey('final_place_wager_button'),
-                    onPressed: () => actions.submitFinalWager(
-                      roomId: widget.roomId,
-                      wager: int.tryParse(_wagerCtrl.text.trim()) ?? 0,
-                    ),
+                    onPressed: canSubmitMyWager
+                        ? () => actions.submitFinalWager(
+                            roomId: widget.roomId,
+                            wager: int.tryParse(_wagerCtrl.text.trim()) ?? 0,
+                          )
+                        : null,
                     child: Text(context.l10n.placeWager),
                   ),
                 ],
@@ -376,26 +456,28 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                     child: TextField(
                       key: const ValueKey('final_answer_text_field'),
                       controller: _finalAnswerCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Your final answer',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.yourFinalAnswerLabel,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     key: const ValueKey('final_submit_answer_button'),
-                    onPressed: () async {
-                      final value = _finalAnswerCtrl.text.trim();
-                      if (value.isEmpty) {
-                        return;
-                      }
-                      await actions.submitFinalAnswer(
-                        roomId: widget.roomId,
-                        answer: value,
-                      );
-                      _finalAnswerCtrl.clear();
-                    },
-                    child: const Text('Submit answer'),
+                    onPressed: canSubmitMyFinalAnswer
+                        ? () async {
+                            final value = _finalAnswerCtrl.text.trim();
+                            if (value.isEmpty) {
+                              return;
+                            }
+                            await actions.submitFinalAnswer(
+                              roomId: widget.roomId,
+                              answer: value,
+                            );
+                            _finalAnswerCtrl.clear();
+                          }
+                        : null,
+                    child: Text(context.l10n.submitAnswer),
                   ),
                 ],
               ),
@@ -457,21 +539,25 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
                                   if (isAnswering &&
                                       (room.finalAnswerCurrentUid ?? '') ==
                                           p.uid)
-                                    const Text('Now answering'),
+                                    Text(context.l10n.nowAnswering),
                                   if (isAnswering)
                                     Text(
                                       p.finalAnswerSubmitted
-                                          ? 'Answer submitted'
-                                          : 'Answer not submitted',
+                                          ? context.l10n.answerSubmitted
+                                          : context.l10n.answerNotSubmitted,
                                     ),
                                   if (p.finalAnswerSubmitted &&
                                       (p.finalAnswerText ?? '').isNotEmpty)
-                                    Text('Answer text: ${p.finalAnswerText}'),
+                                    Text(
+                                      context.l10n.answerText(
+                                        p.finalAnswerText!,
+                                      ),
+                                    ),
                                   if (isReveal)
                                     Text(
                                       p.finalRevealed
-                                          ? 'Revealed'
-                                          : 'Waiting reveal',
+                                          ? context.l10n.revealed
+                                          : context.l10n.waitingReveal,
                                     ),
                                   Wrap(
                                     spacing: 8,

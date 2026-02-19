@@ -29,6 +29,8 @@
   "roomNameRequired": "Назва кімнати обов'язкова",
   "createRoomDialogTitle": "Створення кімнати",
   "roomPasswordLabel": "Пароль (необов'язково)",
+  "invalidRoomPassword": "Невірний пароль кімнати.",
+  "roomPasswordRequired": "Для входу потрібен пароль кімнати.",
   "packFileRequired": "Файл пака обов'язковий",
   "enterRoomPasswordTitle": "Введіть пароль для: {roomName}",
   "@enterRoomPasswordTitle": {
@@ -107,6 +109,9 @@
   "noQuestionsCurrentRound": "Немає питань для поточного раунду",
   "activeQuestionHeader": "Активне: {theme} | {type} | {cost}",
   "mediaLabel": "Медіа",
+  "mediaPreviewAudio": "Аудіо-медіа",
+  "mediaPreviewVideo": "Відео-медіа",
+  "mediaPreviewUnavailable": "Попередній перегляд медіа недоступний",
   "openAnswerButton": "Відкрити кнопку відповіді",
   "answeringNow": "Відповідає",
   "answeredByVoice": "Відповів голосом",
@@ -137,6 +142,79 @@
   "questionLabel": "Питання",
   "yourFinalWager": "Ваша фінальна ставка",
   "placeWager": "Поставити",
+  "yourFinalAnswerLabel": "Ваша фінальна відповідь",
+  "submitAnswer": "Надіслати відповідь",
+  "finalThemesList": "Теми фіналу: {themes}",
+  "@finalThemesList": {
+    "placeholders": {
+      "themes": {}
+    }
+  },
+  "finalCurrentDeleter": "Зараз видаляє: {name}",
+  "@finalCurrentDeleter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalPickDeleterFrom": "Ведучий має обрати того, хто видаляє, з: {names}",
+  "@finalPickDeleterFrom": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "finalSelectFirstDeleterTie": "Оберіть першого, хто видаляє (нічия):",
+  "finalSelectNamed": "Обрати \"{name}\"",
+  "@finalSelectNamed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalDeleteTurn": "Хід видалення: {name}",
+  "@finalDeleteTurn": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalDeleteTheme": "Видалити \"{theme}\"",
+  "@finalDeleteTheme": {
+    "placeholders": {
+      "theme": {}
+    }
+  },
+  "currentAnsweringPlayer": "Зараз відповідає: {name}",
+  "@currentAnsweringPlayer": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "finalRevealStep": "Крок розкриття фіналу: {current}/{total}",
+  "@finalRevealStep": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "currentRevealPlayer": "Зараз розкривається: {name}",
+  "@currentRevealPlayer": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "nowAnswering": "Відповідає зараз",
+  "answerSubmitted": "Відповідь надіслано",
+  "answerNotSubmitted": "Відповідь не надіслано",
+  "answerText": "Текст відповіді: {answer}",
+  "@answerText": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "revealed": "Розкрито",
+  "waitingReveal": "Очікує розкриття",
   "discordVoiceInfo": "Відповіді даються лише голосом у Discord. Ведучий відмічає результат кожної відповіді.",
   "playerWagerLine": "{name} | ставка: {wager}",
   "decisionLabel": "Рішення",
@@ -146,11 +224,66 @@
   "offline": "offline",
   "scoreLabel": "Рахунок",
   "statsLine": "Стат: +{correct} / -{wrong} | Кнопка: {buzz}",
+  "playersCountSummary": "Учасників: {total} | Активних: {active} | Глядачів: {spectators}",
+  "@playersCountSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      },
+      "spectators": {
+        "type": "int"
+      }
+    }
+  },
   "manualAdjustment": "Ручне коригування",
   "kick": "Кік",
   "ban": "Бан",
   "unban": "Розбан",
   "noEventsYet": "Подій поки немає",
+  "eventQuestionAdd": "Питання додано",
+  "eventQuestionAddBulk": "Питання додано масово",
+  "eventQuestionUpdate": "Питання оновлено",
+  "eventQuestionDelete": "Питання видалено",
+  "eventPackSave": "Пак збережено",
+  "eventPackApply": "Пак застосовано до кімнати",
+  "eventTimerExpire": "Таймер завершився",
+  "eventFinalRevealStart": "Розкриття фіналу розпочато",
+  "eventFinalRevealEnd": "Розкриття фіналу завершено",
+  "eventFinalRevealStep": "Крок розкриття фіналу",
+  "eventAnswerSubmit": "Голосову відповідь надіслано",
+  "eventAnswerSubmitNumeric": "Числову відповідь надіслано",
+  "eventFinalStart": "Фінальний раунд розпочато",
+  "eventJudge": "Ведучий оцінив відповідь",
+  "eventAppealSubmit": "Апеляцію надіслано",
+  "eventAppealResolve": "Апеляцію розглянуто",
+  "eventScoreManual": "Ручне коригування рахунку",
+  "eventPause": "Гру поставлено на паузу",
+  "eventResume": "Гру продовжено",
+  "eventFinalQuestionSet": "Фінальне питання задано",
+  "eventFinalThemeDeleterSelected": "Обрано того, хто видаляє тему фіналу",
+  "eventFinalThemeDeleted": "Тему фіналу видалено",
+  "eventFinalWagerOpen": "Фінальні ставки відкрито",
+  "eventFinalAnswersOpen": "Етап фінальних відповідей відкрито",
+  "eventFinalAnswerSubmit": "Фінальну відповідь надіслано",
+  "eventFinalWager": "Фінальну ставку надіслано",
+  "eventFinalMark": "Результат фінальної відповіді відмічено",
+  "eventStart": "Гру розпочато",
+  "eventQuestionPick": "Питання обрано",
+  "eventBuzzOpen": "Кнопку відповіді відкрито",
+  "eventCatTarget": "Обрано отримувача Кота у мішку",
+  "eventWagerSet": "Ставку встановлено",
+  "eventRoundNext": "Перехід до наступного раунду",
+  "eventBuzz": "Гравець натиснув кнопку",
+  "eventRoomCreated": "Кімнату створено",
+  "eventJoin": "Гравець увійшов до кімнати",
+  "eventRoleChange": "Роль гравця змінено",
+  "eventKick": "Гравця виключено",
+  "eventBan": "Гравця забанено",
+  "eventUnban": "Гравця розбанено",
+  "eventRulesUpdate": "Правила кімнати оновлено",
   "myPackDefault": "Мій пак",
   "roomEditorTitle": "Теми і питання",
   "roomIdLabel": "Кімната: {id}",
@@ -161,6 +294,11 @@
   "round1": "Раунд 1",
   "addQuestion": "Додати питання",
   "questionAdded": "Питання додано",
+  "questionUpdated": "Питання оновлено",
+  "questionDeleted": "Питання видалено",
+  "editAction": "Змінити",
+  "deleteAction": "Видалити",
+  "deleteQuestionTitle": "Видалити питання",
   "exportPackageTitle": "Експорт пакета",
   "exportJson": "Експорт JSON",
   "importJson": "Імпорт JSON",
@@ -232,8 +370,4 @@
   "popupInfoTitle": "Повідомлення",
   "popupOk": "ОК"
 }
-
-
-
-
 

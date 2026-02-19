@@ -39,3 +39,7 @@ final profileStreamProvider = StreamProvider.autoDispose
           .snapshots()
           .map((doc) => doc.data() ?? <String, dynamic>{});
     });
+
+final currentUserUidProvider = Provider<String?>((ref) {
+  return FirebaseAuth.instance.currentUser?.uid;
+});

@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/presentation/loading_screen.dart';
 import '../../../../core/l10n.dart';
+import '../../../../core/providers.dart';
 import '../../application/game_providers.dart';
 import '../../game_localizations.dart';
 import '../../game_models.dart';
@@ -36,8 +36,8 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final myUid = FirebaseAuth.instance.currentUser!.uid;
-    final actions = ref.read(playerActionsProvider);
+    final myUid = ref.watch(currentUserUidProvider) ?? '';
+    final actions = widget.isHost ? ref.read(playerActionsProvider) : null;
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final eventsAsync = ref.watch(eventsStreamProvider(widget.roomId));
     final players = playersAsync.valueOrNull ?? const <PlayerModel>[];
@@ -157,7 +157,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                             ),
                                             IconButton(
                                               onPressed: () =>
-                                                  actions.applyScore(
+                                                  actions!.applyScore(
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                     delta:
@@ -171,7 +171,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                             ),
                                             IconButton(
                                               onPressed: () =>
-                                                  actions.applyScore(
+                                                  actions!.applyScore(
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                     delta:
@@ -216,7 +216,8 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                               ],
                                               onChanged: (v) {
                                                 if (v == null) return;
-                                                actions.setPlayerRole(
+                                                actions!.setPlayerRole(
+                                                  // host-only branch
                                                   roomId: widget.roomId,
                                                   targetUid: p.uid,
                                                   role: v,
@@ -225,7 +226,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                             ),
                                             OutlinedButton(
                                               onPressed: () =>
-                                                  actions.kickPlayer(
+                                                  actions!.kickPlayer(
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                   ),
@@ -233,7 +234,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                             ),
                                             OutlinedButton(
                                               onPressed: () =>
-                                                  actions.banPlayer(
+                                                  actions!.banPlayer(
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                   ),
@@ -241,7 +242,7 @@ class _RoomSidePanelState extends ConsumerState<RoomSidePanel> {
                                             ),
                                             OutlinedButton(
                                               onPressed: () =>
-                                                  actions.unbanPlayer(
+                                                  actions!.unbanPlayer(
                                                     roomId: widget.roomId,
                                                     targetUid: p.uid,
                                                   ),

@@ -77,9 +77,20 @@ firebase deploy --only hosting
 - [x] Таймерные автопереходы (включая auto-heal на отключениях)
 - [x] Поддержка разного числа участников (1..N активных игроков + зрители) в серверной логике
 - [x] Локализация ключевых игровых экранов и событий
-- [ ] Полный e2e прогон через Firebase Emulator Suite без `SKIP` в текущем окружении
+- [x] Полный e2e прогон через Firebase Emulator Suite без `SKIP` (`functions/tests/gameCommand.emulator.test.js`)
 
-### Что осталось до 100% паритета
+### Статус паритета
 
-- Запустить и стабилизировать весь `functions/tests/gameCommand.emulator.test.js` в окружении с поднятыми эмуляторами Firestore/Auth/Functions.
-- Добавить дополнительные Flutter UI-тесты для экранов игры с реальным мокингом `FirebaseAuth.currentUser` и потоков room/players/events.
+- [x] Расширены Flutter UI-тесты экранов игры с мокингом `room/players/questions/events` потоков и user uid через провайдеры.
+- [x] Покрыты unit-тестами ключевые ветки `RoomAutoFlowController` (board/cat/wager/answer/final/timer/anti-duplication).
+- [x] Добавлены e2e-регрессии final-команд, включая запрет `open_final_answers` до получения ставок от всех eligible игроков.
+
+### Команда полного emulator e2e прогона
+
+Требуется JDK 21+.
+
+```bash
+export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
+export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+firebase emulators:exec --only firestore,auth "cd functions && node --test tests/gameCommand.emulator.test.js"
+```

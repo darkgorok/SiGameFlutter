@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/presentation/loading_screen.dart';
 import '../../../../core/hotkeys.dart';
 import '../../../../core/l10n.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/runtime_flags.dart';
 import '../../application/game_providers.dart';
 import '../../game_models.dart';
@@ -37,17 +37,19 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
     enabled: e2eAutoFlowEnabled,
   );
   LogicalKeyboardKey _answerHotkey = AppHotkeys.defaultAnswerHotkey;
+  late final RoomActions _roomActions;
 
   @override
   void initState() {
     super.initState();
+    _roomActions = ref.read(roomActionsProvider);
     _loadAnswerHotkey();
   }
 
   @override
   void dispose() {
     _autoFlowController.dispose();
-    ref.read(roomActionsProvider).markDisconnected(widget.roomId);
+    _roomActions.markDisconnected(widget.roomId);
     super.dispose();
   }
 
@@ -82,7 +84,7 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
     final roomAsync = ref.watch(roomStreamProvider(widget.roomId));
     final playersAsync = ref.watch(playersStreamProvider(widget.roomId));
     final questionsAsync = ref.watch(questionsStreamProvider(widget.roomId));
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = ref.watch(currentUserUidProvider) ?? '';
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -142,13 +144,15 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
               final canStartFinalRound =
                   isHost && !isPaused && !isFinalState && !isCompletedState;
               final canPauseByState = canPause && !isCompletedState;
-              final effectiveCleanView =
-                  _cleanView || myRole == PlayerRole.spectator;
+              final effectiveCleanView = myRole == PlayerRole.spectator
+                  ? !_cleanView
+                  : _cleanView;
               final roomActions = ref.read(roomActionsProvider);
               final questionActions = ref.read(questionActionsProvider);
               final finalActions = ref.read(finalActionsProvider);
               _autoFlowController.drive(
                 mounted: mounted,
+                uid: uid,
                 room: room,
                 players: players,
                 questions: questions,
@@ -255,6 +259,9 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                                   bottom: 4,
                                 ),
                                 child: TextButton.icon(
+                                  key: const ValueKey(
+                                    'room_clean_view_toggle_button',
+                                  ),
                                   onPressed: () =>
                                       setState(() => _cleanView = !_cleanView),
                                   icon: const Icon(Icons.tv),

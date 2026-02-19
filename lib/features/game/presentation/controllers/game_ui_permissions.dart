@@ -1,14 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../game_models.dart';
 
 class GameUiPermissions {
-  static bool canPickQuestion(RoomModel room) {
+  static bool canPickQuestion(RoomModel room, String uid) {
     if (room.status == GameStatus.paused ||
         room.phase != GamePhase.boardSelect) {
       return false;
     }
-    final uid = FirebaseAuth.instance.currentUser!.uid;
     return room.chooserUid == uid || room.hostUid == uid;
   }
 

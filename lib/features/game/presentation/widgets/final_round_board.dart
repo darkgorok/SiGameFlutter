@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/presentation/loading_screen.dart';
 import '../../../../core/l10n.dart';
+import '../../../../core/providers.dart';
 import '../../application/game_providers.dart';
 import '../../game_localizations.dart';
 import '../../game_models.dart';
@@ -47,7 +47,7 @@ class _FinalRoundBoardState extends ConsumerState<FinalRoundBoard> {
   @override
   Widget build(BuildContext context) {
     final room = widget.room;
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = ref.watch(currentUserUidProvider) ?? '';
     final isHost = room.hostUid == uid;
     final isSetup = room.phase == GamePhase.finalSetup;
     final isWagering = room.phase == GamePhase.finalWagering;
@@ -686,8 +686,7 @@ class _FinalStageTimerState extends ConsumerState<_FinalStageTimer> {
       setState(() => _leftSec = nextLeftSec);
     }
 
-    final isHost =
-        widget.room.hostUid == FirebaseAuth.instance.currentUser?.uid;
+    final isHost = widget.room.hostUid == (ref.read(currentUserUidProvider));
     if (nextLeftSec == 0 && !_expiredHandled && isHost) {
       _expiredHandled = true;
       ref.read(questionActionsProvider).handleTimerExpiration(widget.roomId);

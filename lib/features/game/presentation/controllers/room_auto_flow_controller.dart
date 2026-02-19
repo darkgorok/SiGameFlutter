@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../application/game_providers.dart';
 import '../../game_models.dart';
 import '../player_roster_utils.dart';
@@ -65,6 +63,7 @@ class RoomAutoFlowController {
 
   void drive({
     required bool mounted,
+    required String uid,
     required RoomModel room,
     required List<PlayerModel> players,
     required List<QuestionModel> questions,
@@ -79,7 +78,6 @@ class RoomAutoFlowController {
       return;
     }
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
     final me = _maybeByUid(players, uid);
     final myConnected = me?.connected == true;
     final signature = <String>[
@@ -143,10 +141,12 @@ class RoomAutoFlowController {
         final hasHigherRoundQuestions = questions.any(
           (q) => q.round > room.currentRound && !q.used,
         );
+        final shouldAdvanceToRound2 =
+            room.currentRound < 2 && hasHigherRoundQuestions;
         _queueAction(
           key: 'advance_${room.currentRound}',
           delay: const Duration(seconds: 2),
-          action: () => hasHigherRoundQuestions
+          action: () => shouldAdvanceToRound2
               ? roomActions.advanceToRound2(roomId)
               : roomActions.startFinalRound(roomId),
           mounted: mounted,
@@ -420,7 +420,11 @@ class RoomAutoFlowController {
             );
           }
         } else {
-          final result = pending.uid == uid
+          final expected = (room.finalAnswer ?? '').trim().toLowerCase();
+          final submitted = (pending.finalAnswerText ?? '')
+              .trim()
+              .toLowerCase();
+          final result = expected.isNotEmpty && submitted == expected
               ? FinalResult.correct
               : FinalResult.wrong;
           _queueAction(

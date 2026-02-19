@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/presentation/loading_screen.dart';
 import '../../../../core/l10n.dart';
+import '../../../../core/providers.dart';
 import '../../application/game_providers.dart';
 import '../../game_localizations.dart';
 import '../../game_models.dart';
@@ -80,6 +80,7 @@ class _QuestionBoardState extends ConsumerState<QuestionBoard> {
 
   @override
   Widget build(BuildContext context) {
+    final uid = ref.watch(currentUserUidProvider) ?? '';
     final players = ref.watch(playersStreamProvider(widget.roomId)).valueOrNull;
     final groupedAsync = ref.watch(
       groupedQuestionsProvider(
@@ -129,6 +130,7 @@ class _QuestionBoardState extends ConsumerState<QuestionBoard> {
                           room: widget.room,
                           roomId: widget.roomId,
                           board: board,
+                          currentUid: uid,
                           onPick: (questionId) => actions.pickQuestion(
                             roomId: widget.roomId,
                             questionId: questionId,
@@ -324,12 +326,14 @@ class _ClassicBoardTable extends StatelessWidget {
     required this.room,
     required this.roomId,
     required this.board,
+    required this.currentUid,
     required this.onPick,
   });
 
   final RoomModel room;
   final String roomId;
   final GroupedQuestionBoard board;
+  final String currentUid;
   final ValueChanged<String> onPick;
 
   @override
@@ -402,7 +406,8 @@ class _ClassicBoardTable extends StatelessWidget {
                       return const SizedBox(height: 104);
                     }
                     final canPick =
-                        GameUiPermissions.canPickQuestion(room) && !q.used;
+                        GameUiPermissions.canPickQuestion(room, currentUid) &&
+                        !q.used;
                     return InkWell(
                       key: ValueKey(
                         'room_pick_question_${q.id}_${q.cost}_${q.type.value}_${q.mediaType.value}',
@@ -527,8 +532,7 @@ class _BoardStageTimerState extends ConsumerState<_BoardStageTimer> {
       _expiredVisualNotified = true;
       widget.onExpiredVisual?.call();
     }
-    final isHost =
-        widget.room.hostUid == FirebaseAuth.instance.currentUser?.uid;
+    final isHost = widget.room.hostUid == (ref.read(currentUserUidProvider));
     if (safeSec == 0 && !_expiredHandled && isHost) {
       _expiredHandled = true;
       ref.read(questionActionsProvider).handleTimerExpiration(widget.roomId);
@@ -601,7 +605,7 @@ class ActiveQuestionPanel extends ConsumerWidget {
       return uid;
     }
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = ref.watch(currentUserUidProvider) ?? '';
     final isHost = uid == room.hostUid;
     final actions = ref.read(questionActionsProvider);
 
@@ -898,7 +902,7 @@ class CatTargetingPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playersAsync = ref.watch(playersStreamProvider(roomId));
     final actions = ref.read(questionActionsProvider);
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = ref.watch(currentUserUidProvider) ?? '';
     if (uid != room.chooserUid && uid != room.hostUid) {
       return Text(context.l10n.waitingCatSelection);
     }
@@ -949,7 +953,7 @@ class _WagerPanelState extends ConsumerState<WagerPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = ref.watch(currentUserUidProvider) ?? '';
     final room = widget.room;
     final actions = ref.read(questionActionsProvider);
     final canSetWager = uid == room.chooserUid || uid == room.hostUid;

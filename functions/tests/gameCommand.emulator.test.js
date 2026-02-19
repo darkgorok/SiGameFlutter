@@ -2465,6 +2465,133 @@ test('final commands are rejected in wrong phases', { skip: !hasEmulator }, asyn
   );
 });
 
+test('start_final_round rejects when there are no eligible connected voice players', { skip: !hasEmulator }, async () => {
+  const { gameCommandHandler } = require('../index');
+  const db = admin.firestore();
+
+  const hostUid = `host-final-empty-eligible-${Date.now()}`;
+  const p1Uid = `${hostUid}-p1`;
+  await Promise.all([
+    db.collection('profiles').doc(hostUid).set({ nickname: 'HostFinalEmptyEligible' }),
+    db.collection('profiles').doc(p1Uid).set({ nickname: 'P1FinalEmptyEligible' }),
+  ]);
+
+  const call = (uid, command, data = {}, roomId = undefined) => {
+    const payload = { command, data };
+    if (roomId) payload.roomId = roomId;
+    return gameCommandHandler(payload, { auth: { uid } });
+  };
+
+  const create = await call(hostUid, 'create_room', { roomName: 'FinalEmptyEligibleRoom' });
+  const roomId = create.roomId;
+  const roomRef = db.collection('rooms').doc(roomId);
+  await call(p1Uid, 'join_room', { role: 'player' }, roomId);
+
+  await roomRef.collection('players').doc(hostUid).set(
+    { connected: false, role: 'spectator', score: 0 },
+    { merge: true },
+  );
+  await roomRef.collection('players').doc(p1Uid).set(
+    { connected: false, role: 'spectator', score: 0 },
+    { merge: true },
+  );
+
+  await assert.rejects(
+    () => call(hostUid, 'start_final_round', {}, roomId),
+    (error) => error && error.code === 'failed-precondition',
+  );
+});
+
+test('open_final_wagers rejects when final eligible list is empty', { skip: !hasEmulator }, async () => {
+  const { gameCommandHandler } = require('../index');
+  const db = admin.firestore();
+
+  const hostUid = `host-open-final-wagers-empty-${Date.now()}`;
+  await db.collection('profiles').doc(hostUid).set({ nickname: 'HostOpenFinalWagersEmpty' });
+
+  const call = (uid, command, data = {}, roomId = undefined) => {
+    const payload = { command, data };
+    if (roomId) payload.roomId = roomId;
+    return gameCommandHandler(payload, { auth: { uid } });
+  };
+
+  const create = await call(hostUid, 'create_room', { roomName: 'FinalWagersEmptyEligibleRoom' });
+  const roomId = create.roomId;
+  const roomRef = db.collection('rooms').doc(roomId);
+
+  await roomRef.update({
+    status: 'final_round',
+    phase: 'final_setup',
+    finalThemePool: ['OnlyTheme'],
+    finalTheme: 'OnlyTheme',
+    finalQuestion: 'Final q',
+    finalAnswer: 'Final a',
+    finalEligibleUids: [],
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  await assert.rejects(
+    () => call(hostUid, 'open_final_wagers', {}, roomId),
+    (error) => error && error.code === 'failed-precondition',
+  );
+});
+
+test('open_final_answers rejects until all eligible players submit wagers', { skip: !hasEmulator }, async () => {
+  const { gameCommandHandler } = require('../index');
+  const db = admin.firestore();
+
+  const hostUid = `host-open-final-answers-partial-${Date.now()}`;
+  const p1Uid = `${hostUid}-p1`;
+  const p2Uid = `${hostUid}-p2`;
+  await Promise.all([
+    db.collection('profiles').doc(hostUid).set({ nickname: 'HostOpenFinalAnswersPartial' }),
+    db.collection('profiles').doc(p1Uid).set({ nickname: 'P1OpenFinalAnswersPartial' }),
+    db.collection('profiles').doc(p2Uid).set({ nickname: 'P2OpenFinalAnswersPartial' }),
+  ]);
+
+  const call = (uid, command, data = {}, roomId = undefined) => {
+    const payload = { command, data };
+    if (roomId) payload.roomId = roomId;
+    return gameCommandHandler(payload, { auth: { uid } });
+  };
+
+  const create = await call(hostUid, 'create_room', { roomName: 'FinalAnswersPartialWagersRoom' });
+  const roomId = create.roomId;
+  const roomRef = db.collection('rooms').doc(roomId);
+
+  await call(p1Uid, 'join_room', { role: 'player' }, roomId);
+  await call(p2Uid, 'join_room', { role: 'player' }, roomId);
+
+  await roomRef.update({
+    status: 'final_round',
+    phase: 'final_wagering',
+    finalThemePool: ['OnlyTheme'],
+    finalTheme: 'OnlyTheme',
+    finalQuestion: 'Final question',
+    finalAnswer: 'Final answer',
+    finalEligibleUids: [p1Uid, p2Uid],
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await roomRef.collection('players').doc(p1Uid).set(
+    { role: 'player', connected: true, score: 200, finalWagerSubmitted: true, finalWager: 50 },
+    { merge: true },
+  );
+  await roomRef.collection('players').doc(p2Uid).set(
+    { role: 'player', connected: true, score: 100, finalWagerSubmitted: false, finalWager: 0 },
+    { merge: true },
+  );
+
+  await assert.rejects(
+    () => call(hostUid, 'open_final_answers', {}, roomId),
+    (error) => error && error.code === 'failed-precondition',
+  );
+
+  await call(p2Uid, 'submit_final_wager', { wager: 20 }, roomId);
+  await call(hostUid, 'open_final_answers', {}, roomId);
+  const room = (await roomRef.get()).data() || {};
+  assert.equal(String(room.phase), 'final_answering');
+});
+
 test('set_final_question stores final answer text', { skip: !hasEmulator }, async () => {
   const { gameCommandHandler } = require('../index');
   const db = admin.firestore();

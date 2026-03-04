@@ -15,10 +15,8 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
-
 # VS Code related
 .vscode/
-
 # Flutter/Dart/Pub related
 .dart_tool/
 .flutter-plugins
@@ -26,25 +24,19 @@ migrate_working_dir/
 .packages
 .pub/
 /build/
-
 # Flutter web build/cache
 web/.dart_tool/
 web/build/
-
 # Symbolication related
 app.*.symbols
-
 # Obfuscation related
 app.*.map.json
-
 # Android Studio captures
 /captures/
-
 # Generated plugin registrant
-
 # Local Firebase config
 /config/firebase.web.json
-
 # Firebase CLI
 .firebase/
 firebase-debug.log
+firestore-debug.log

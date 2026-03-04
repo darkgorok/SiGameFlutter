@@ -9,7 +9,7 @@
   "hosting": [
     {
       "target": "finally",
-      "public": "build/web",
+      "public": "frontend/dist",
       "ignore": [
         "firebase.json",
         "**/.*",

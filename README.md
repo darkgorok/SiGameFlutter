@@ -1,101 +1,73 @@
 # BrainBlitz
 
-Онлайн-версия игры «Своя игра» на Flutter Web + Firebase.
+Web game project using Firebase backend and a React + TypeScript frontend (`frontend/`).
 
-## Быстрый старт
+## Current stack
 
-1. Установить зависимости:
+- Frontend: React 19 + TypeScript + Vite
+- Backend: Firebase Functions + Firestore + Auth
+- Local run: Firebase Emulator Suite
 
-```bash
-flutter pub get
+## Quick start (one command)
+
+From project root:
+
+```powershell
+.\dev.ps1
 ```
 
-2. Убедиться, что заполнен локальный Firebase-конфиг:
+What it does:
 
-- Файл: `config/firebase.web.json`
-- Пример: `config/firebase.web.example.json`
+- frees emulator ports (`8080`, `9099`, `5001`) if needed
+- installs missing dependencies in `functions/` and `frontend/`
+- starts Firebase emulators + Vite dev server in one terminal
 
-3. Запустить web:
+Default emulator project id: `demo-si-game`.
 
-```bash
-flutter run -d chrome --dart-define-from-file=config/firebase.web.json
+## Manual start
+
+1. Install dependencies:
+
+```powershell
+npm --prefix functions install
+npm --prefix frontend install
 ```
 
-Для прод-конфига функций используется регион `europe-central2` (можно переопределить через `--dart-define=FIREBASE_FUNCTIONS_REGION=...`).
-Для Firestore используется БД `databasewarsaw` (можно переопределить через `--dart-define=FIREBASE_FIRESTORE_DATABASE_ID=...`).
+2. Start emulators + frontend:
 
-4. Собрать web:
-
-```bash
-flutter build web --dart-define-from-file=config/firebase.web.json
+```powershell
+firebase --config firebase.local.json emulators:exec --project demo-si-game "npm --prefix frontend run dev"
 ```
 
-## Runtime флаги
+## Frontend environment
 
-- `E2E_BYPASS_PROFILE_UPSERT=true` — не отправлять `upsertProfile` в backend (для E2E).
-- `E2E_AUTO_FLOW=true` — включить автопилот игровых переходов в комнате (для E2E/демо). По умолчанию выключен.
+Local emulator values are already provided in `frontend/.env`.
 
-Пример:
+Template for real Firebase values: `frontend/.env.example`.
 
-```bash
-flutter run -d chrome \
-  --dart-define-from-file=config/firebase.web.json \
-  --dart-define=E2E_AUTO_FLOW=true
+## Frontend scripts
+
+```powershell
+npm --prefix frontend run dev
+npm --prefix frontend run lint
+npm --prefix frontend run test
+npm --prefix frontend run build
 ```
 
-## Firebase
+## Backend scripts
 
-### Требования в консоли Firebase
-
-- `Authentication -> Sign-in method -> Anonymous` включен.
-- Firestore создан в `Native mode`.
-
-### Деплой правил/индексов Firestore
-
-```bash
-firebase deploy --only firestore:rules,firestore:indexes
+```powershell
+npm --prefix functions test
 ```
 
-### Деплой web в Firebase Hosting
+## Firebase files
 
-```bash
-flutter build web --dart-define-from-file=config/firebase.web.json
-firebase deploy --only hosting
-```
-
-## Файлы конфигурации Firebase
-
-- `firebase.json`
+- `firebase.json` - default project config (includes hosting target)
+- `firebase.local.json` - local emulator config used by `dev.ps1`
 - `firestore.rules`
 - `firestore.indexes.json`
-- `config/firebase.web.example.json`
-- `config/firebase.web.json` (локальный, в git не коммитится)
 
-## Паритет с оригинальной игрой (чеклист)
+## Migration status
 
-- [x] Базовые фазы игры: lobby -> board_select -> question/answer -> final -> game_over
-- [x] Поддержка спецтипов вопросов: `cat_in_bag`, `wager`, `closest_number`, legacy-синонимы
-- [x] Финал: удаление тем, ставки, порядок ответов, reveal, начисление/списание
-- [x] Роли: host/player/editor/spectator, смена ролей и ограничения команд
-- [x] Таймерные автопереходы (включая auto-heal на отключениях)
-- [x] Поддержка разного числа участников (1..N активных игроков + зрители) в серверной логике
-- [x] Локализация ключевых игровых экранов и событий
-- [x] Полный e2e прогон через Firebase Emulator Suite без `SKIP` (`functions/tests/gameCommand.emulator.test.js`)
-
-### Статус паритета
-
-- [x] Расширены Flutter UI-тесты экранов игры с мокингом `room/players/questions/events` потоков и user uid через провайдеры.
-- [x] Покрыты unit-тестами ключевые ветки `RoomAutoFlowController` (board/cat/wager/answer/final/timer/anti-duplication).
-- [x] Добавлены e2e-регрессии final-команд, включая запрет `open_final_answers` до получения ставок от всех eligible игроков.
-- [x] Добавлена совместимость с alias-типом `bagcat` из оригинального SI (`bagcat -> cat_in_bag`) в backend и Flutter-моделях.
-- [x] Добавлена e2e-регрессия паузы/продолжения: при `pause/resume` сохраняется остаток таймера и корректно сдвигается `timerDeadlineAtMs`.
-
-### Команда полного emulator e2e прогона
-
-Требуется JDK 21+.
-
-```bash
-export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
-export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
-firebase emulators:exec --only firestore,auth "cd functions && node --test tests/gameCommand.emulator.test.js"
-```
+Flutter frontend was fully removed from this repository.
+Active frontend is only the React application in `frontend/`.

@@ -100,8 +100,8 @@ export function SettingsPage() {
       <section className="panel stack-16">
         <h2>{t('settings.title')}</h2>
 
-        <div className="row gap-8">
-          <span>{t('settings.lang')}:</span>
+        <div className="row gap-8 control-row">
+          <span className="field-label">{t('settings.lang')}:</span>
           <select value={locale} onChange={(event) => setLocale(event.target.value as typeof locale)}>
             <option value="en">English</option>
             <option value="ru">Russian</option>
@@ -109,13 +109,16 @@ export function SettingsPage() {
           </select>
         </div>
 
-        <button onClick={openProfileModal}>{t('settings.profile_edit')}</button>
+        <div className="row gap-8 control-row">
+          <button className="primary-action" onClick={openProfileModal}>{t('settings.profile_edit')}</button>
+        </div>
 
-        <div className="stack-8">
-          <span>
+        <div className="stack-8 control-card">
+          <span className="field-label">
             {t('settings.volume')}: {Math.round(settings.volume * 100)}%
           </span>
           <input
+            className="volume-slider"
             type="range"
             min={0}
             max={1}
@@ -125,22 +128,23 @@ export function SettingsPage() {
           />
         </div>
 
-        <div className="stack-8">
-          <span>{t('settings.answer_hotkey')}</span>
-          <div className="row gap-8">
-            <span>
+        <div className="stack-8 control-card">
+          <span className="field-label">{t('settings.answer_hotkey')}</span>
+          <div className="row gap-8 control-row">
+            <span className="subtle-copy">
               {captureHotkey
                 ? t('settings.answer_hotkey_press')
                 : `${t('settings.answer_hotkey_current')}: ${hotkeyLabel(settings.answerHotkey)}`}
             </span>
-            <button onClick={() => setCaptureHotkey((current) => !current)}>
+            <button className="secondary-action" onClick={() => setCaptureHotkey((current) => !current)}>
               {captureHotkey ? t('settings.cancel') : t('settings.change')}
             </button>
           </div>
         </div>
 
-        <label className="row gap-8">
+        <label className="row gap-8 switch-row control-card">
           <input
+            className="glass-switch"
             type="checkbox"
             checked={settings.spectatorCleanViewDefault}
             onChange={(event) => onSpectatorCleanChange(event.target.checked)}
@@ -165,7 +169,7 @@ export function SettingsPage() {
               onChange={(event) => setProfileAvatarUrl(event.target.value)}
             />
             <div className="row gap-8">
-              <button disabled={profileBusy} onClick={() => void onSaveProfile()}>
+              <button className="primary-action" disabled={profileBusy} onClick={() => void onSaveProfile()}>
                 {profileBusy ? 'Saving...' : t('profile.save')}
               </button>
               <button className="ghost-button" disabled={profileBusy} onClick={() => setProfileModalOpen(false)}>

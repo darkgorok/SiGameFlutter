@@ -172,7 +172,7 @@ export function RoomEditorPage() {
 
   return (
     <section className="stack-16">
-      <article className="panel stack-8">
+      <article className="panel stack-8 glass-hero">
         <h2>
           {t('editor.title')}: {roomId}
         </h2>
@@ -206,7 +206,7 @@ export function RoomEditorPage() {
           value={draft.mediaUrl}
           onChange={(event) => setDraft((prev) => ({ ...prev, mediaUrl: event.target.value }))}
         />
-        <div className="row gap-8">
+        <div className="row gap-8 control-row">
           <input
             className="narrow-input"
             type="number"
@@ -255,8 +255,8 @@ export function RoomEditorPage() {
             ))}
           </select>
         </div>
-        <div className="row gap-8">
-          <button disabled={busy} onClick={() => void onSaveQuestion()}>
+        <div className="row gap-8 control-row">
+          <button className="primary-action" disabled={busy} onClick={() => void onSaveQuestion()}>
             {editingQuestionId ? t('editor.update') : t('editor.add')}
           </button>
           {editingQuestionId ? (
@@ -277,7 +277,7 @@ export function RoomEditorPage() {
           onChange={(event) => setImportJson(event.target.value)}
         />
         <div className="row gap-8">
-          <button disabled={busy || !importJson.trim()} onClick={() => void onImport()}>
+          <button className="primary-action" disabled={busy || !importJson.trim()} onClick={() => void onImport()}>
             {t('editor.import_bulk')}
           </button>
         </div>
@@ -292,6 +292,10 @@ export function RoomEditorPage() {
               <strong>
                 r{question.round} {question.theme} ({question.cost})
               </strong>
+              <p className="room-meta">
+                <span className="status-chip">{question.type}</span>
+                <span className="phase-chip">{question.mediaType}</span>
+              </p>
               <p>{question.text}</p>
             </div>
             <div className="row gap-8">

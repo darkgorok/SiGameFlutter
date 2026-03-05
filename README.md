@@ -1,73 +1,155 @@
 # BrainBlitz
 
-Web game project using Firebase backend and a React + TypeScript frontend (`frontend/`).
+BrainBlitz is a web quiz game project with:
+- frontend in `frontend/` (React + TypeScript + Vite),
+- backend in `functions/` (Firebase Functions),
+- Firestore/Auth via Firebase.
 
-## Current stack
+Flutter is no longer used in this repository.
 
-- Frontend: React 19 + TypeScript + Vite
-- Backend: Firebase Functions + Firestore + Auth
-- Local run: Firebase Emulator Suite
+## Stack
 
-## Quick start (one command)
+- Frontend:
+  - React 19
+  - TypeScript 5
+  - Vite 7
+  - React Router 7
+  - Firebase Web SDK
+  - Zustand
+- Backend:
+  - Firebase Functions (Node.js 22 runtime)
+  - Firebase Admin SDK
+- Infra:
+  - Firestore (rules + indexes in repo)
+  - Firebase Auth
+  - Firebase Hosting (serves `frontend/dist`)
+- Local development:
+  - Firebase Emulator Suite
 
-From project root:
+## Repository Layout
+
+```text
+.
+├── frontend/                  # React app
+│   ├── src/
+│   ├── .env                   # local emulator-ready values
+│   └── .env.example           # template for real Firebase values
+├── functions/                 # Firebase Functions source + tests
+│   ├── src/
+│   ├── tests/
+│   └── scripts/
+├── firebase.json              # default Firebase config (includes hosting)
+├── firebase.local.json        # local emulator-focused Firebase config
+├── firestore.rules
+├── firestore.indexes.json
+└── dev.ps1                    # one-command Windows local startup
+```
+
+## Requirements
+
+- Node.js 22+ (functions runtime is pinned to Node 22)
+- npm
+- Firebase CLI (`firebase`)
+
+## Local Run
+
+### Option A (Windows one-command)
+
+From repository root:
 
 ```powershell
 .\dev.ps1
 ```
 
-What it does:
+`dev.ps1` does the following:
+- frees emulator ports `8080` (Firestore), `9099` (Auth), `5001` (Functions),
+- installs missing dependencies in `functions/` and `frontend/`,
+- runs emulators and frontend together.
 
-- frees emulator ports (`8080`, `9099`, `5001`) if needed
-- installs missing dependencies in `functions/` and `frontend/`
-- starts Firebase emulators + Vite dev server in one terminal
+Default local project id used by script: `demo-si-game`.
 
-Default emulator project id: `demo-si-game`.
-
-## Manual start
+### Option B (manual, all platforms)
 
 1. Install dependencies:
 
-```powershell
+```bash
 npm --prefix functions install
 npm --prefix frontend install
 ```
 
-2. Start emulators + frontend:
+2. Start frontend + emulators:
 
-```powershell
+```bash
 firebase --config firebase.local.json emulators:exec --project demo-si-game "npm --prefix frontend run dev"
 ```
 
-## Frontend environment
+Vite will print the local frontend URL (usually `http://localhost:5173`).
 
-Local emulator values are already provided in `frontend/.env`.
+## Frontend Commands
 
-Template for real Firebase values: `frontend/.env.example`.
-
-## Frontend scripts
-
-```powershell
+```bash
 npm --prefix frontend run dev
 npm --prefix frontend run lint
 npm --prefix frontend run test
 npm --prefix frontend run build
+npm --prefix frontend run preview
 ```
 
-## Backend scripts
+## Backend Commands (Functions)
 
-```powershell
-npm --prefix functions test
+```bash
+npm --prefix functions run test:unit
+npm --prefix functions run test:emulator
+npm --prefix functions run test:emulator:local
+npm --prefix functions run serve
+npm --prefix functions run deploy
 ```
 
-## Firebase files
+Note: `functions` lint script is currently a placeholder (`no lint configured`).
 
-- `firebase.json` - default project config (includes hosting target)
-- `firebase.local.json` - local emulator config used by `dev.ps1`
-- `firestore.rules`
-- `firestore.indexes.json`
+## Environment Configuration
 
-## Migration status
+- Local emulator-ready values are committed in `frontend/.env`.
+- For real Firebase projects, use `frontend/.env.example` as a template.
 
-Flutter frontend was fully removed from this repository.
-Active frontend is only the React application in `frontend/`.
+Important frontend flags:
+- `VITE_USE_FIREBASE_EMULATORS=true` for local emulator mode.
+- `VITE_FIREBASE_FUNCTIONS_REGION` for callable function region.
+- `VITE_FIREBASE_FIRESTORE_DATABASE_ID` for custom Firestore DB id (if used).
+
+## Firebase Config Notes
+
+- `firebase.json`:
+  - functions source: `functions`
+  - Firestore rules/indexes: `firestore.rules`, `firestore.indexes.json`
+  - hosting target: `finally`
+  - hosting public dir: `frontend/dist`
+  - SPA rewrite: `** -> /index.html`
+- `firebase.local.json`:
+  - local emulator host/port mapping
+  - used by local startup flow
+
+## Build & Hosting
+
+Production build output is in:
+
+```text
+frontend/dist
+```
+
+Firebase Hosting is configured to serve this folder.
+
+Typical deploy flow:
+
+```bash
+npm --prefix frontend run build
+firebase deploy
+```
+
+If you use multiple hosting targets/projects, pass explicit `--project` / `--only` flags as needed.
+
+## Current Product Status
+
+- Active client: React web app.
+- Active backend: Firebase Functions + Firestore.
+- UI includes Apple-inspired dark liquid-glass styling refinements.

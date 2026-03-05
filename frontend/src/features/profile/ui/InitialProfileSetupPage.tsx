@@ -42,9 +42,16 @@ export function InitialProfileSetupPage({ onSaved }: Props) {
 
   return (
     <section className="center">
-      <article className="panel stack-16 profile-setup-card">
+      <article className="panel stack-16 profile-setup-card profile-panel">
         <h2>{t('profile.setup_title')}</h2>
         <p>{t('profile.setup_subtitle')}</p>
+        <div className="profile-preview">
+          {avatarUrl.trim() ? (
+            <img src={avatarUrl.trim()} alt={nickname.trim() || 'avatar'} />
+          ) : (
+            <span>{(nickname.trim()[0] ?? '?').toUpperCase()}</span>
+          )}
+        </div>
         <input
           placeholder={t('profile.nick')}
           value={nickname}
@@ -56,7 +63,7 @@ export function InitialProfileSetupPage({ onSaved }: Props) {
           value={avatarUrl}
           onChange={(event) => setAvatarUrl(event.target.value)}
         />
-        <button disabled={busy || !nickname.trim()} onClick={() => void onSubmit()}>
+        <button className="primary-action" disabled={busy || !nickname.trim()} onClick={() => void onSubmit()}>
           {busy ? 'Saving...' : t('profile.continue')}
         </button>
         {error ? <p className="error">{error}</p> : null}

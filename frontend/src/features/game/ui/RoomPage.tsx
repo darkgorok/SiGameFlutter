@@ -195,59 +195,72 @@ export function RoomPage() {
             {effectiveCleanView ? t('room.show_panels') : t('room.broadcast_mode')}
           </button>
         ) : null}
-        <div className="row gap-8">
+        <div className="row gap-8 action-dock">
           <button
+            className="primary-action"
             disabled={busy || !permissions?.canStartGame}
             onClick={() => void run(() => gameRepository.startGame(roomId))}
           >
             {t('room.start')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || !permissions?.canAdvanceRound2}
             onClick={() => void run(() => gameRepository.advanceToRound2(roomId))}
           >
             {t('room.round2')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || !permissions?.canStartFinalRound}
             onClick={() => void run(() => gameRepository.startFinalRound(roomId))}
           >
             {t('room.final')}
           </button>
           <button
+            className="primary-action"
             disabled={busy || !permissions?.canOpenBuzzing}
             onClick={() => void run(() => gameRepository.openBuzzing(roomId))}
           >
             {t('room.open_buzzing')}
           </button>
-          <button disabled={busy || !permissions?.canBuzz} onClick={() => void run(() => gameRepository.buzz(roomId))}>
+          <button
+            className="primary-action"
+            disabled={busy || !permissions?.canBuzz}
+            onClick={() => void run(() => gameRepository.buzz(roomId))}
+          >
             {t('room.buzz')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || myRole === 'spectator'}
             onClick={() => void run(() => gameRepository.submitAnswer(roomId))}
           >
             {t('room.submit_answer')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || !isHost}
             onClick={() => void run(() => gameRepository.judgeAnswer(roomId, true))}
           >
             {t('room.mark_correct')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || !isHost}
             onClick={() => void run(() => gameRepository.judgeAnswer(roomId, false))}
           >
             {t('room.mark_wrong')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || !permissions?.canPause}
             onClick={() => void run(() => gameRepository.pauseGame(roomId))}
           >
             {t('room.pause')}
           </button>
           <button
+            className="secondary-action"
             disabled={busy || !permissions?.canResume}
             onClick={() => void run(() => gameRepository.resumeGame(roomId))}
           >
@@ -265,16 +278,18 @@ export function RoomPage() {
       {!effectiveCleanView && isHost ? (
         <article className="panel stack-8">
           <h3>{t('room.rules_title')}</h3>
-          <label className="row gap-8">
+          <label className="row gap-8 switch-row">
             <input
+              className="glass-switch"
               type="checkbox"
               checked={falseStartEnabled}
               onChange={(event) => setFalseStartEnabled(event.target.checked)}
             />
             {t('room.rules_false_start')}
           </label>
-          <label className="row gap-8">
+          <label className="row gap-8 switch-row">
             <input
+              className="glass-switch"
               type="checkbox"
               checked={useAppeals}
               onChange={(event) => setUseAppeals(event.target.checked)}
@@ -303,6 +318,7 @@ export function RoomPage() {
           </div>
           <div className="row gap-8">
             <button
+              className="primary-action"
               disabled={busy}
               onClick={() =>
                 void run(() =>
@@ -319,7 +335,11 @@ export function RoomPage() {
             >
               {t('room.rules_save')}
             </button>
-            <button disabled={busy} onClick={() => void run(() => gameRepository.handleTimerExpiration(roomId))}>
+            <button
+              className="secondary-action"
+              disabled={busy}
+              onClick={() => void run(() => gameRepository.handleTimerExpiration(roomId))}
+            >
               {t('room.force_timer_expire')}
             </button>
           </div>
@@ -335,16 +355,16 @@ export function RoomPage() {
           </p>
           <div className="row gap-8">
             {!isHost ? (
-              <button disabled={busy} onClick={() => void run(() => gameRepository.submitAppeal(roomId))}>
+              <button className="primary-action" disabled={busy} onClick={() => void run(() => gameRepository.submitAppeal(roomId))}>
                 {t('room.appeal_submit')}
               </button>
             ) : null}
             {isHost ? (
               <>
-                <button disabled={busy} onClick={() => void run(() => gameRepository.resolveAppeal(roomId, true))}>
+                <button className="primary-action" disabled={busy} onClick={() => void run(() => gameRepository.resolveAppeal(roomId, true))}>
                   {t('room.appeal_accept')}
                 </button>
-                <button disabled={busy} onClick={() => void run(() => gameRepository.resolveAppeal(roomId, false))}>
+                <button className="secondary-action" disabled={busy} onClick={() => void run(() => gameRepository.resolveAppeal(roomId, false))}>
                   {t('room.appeal_reject')}
                 </button>
               </>

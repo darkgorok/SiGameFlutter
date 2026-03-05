@@ -15,7 +15,11 @@ describe('localSettings', () => {
   });
 
   it('persists updates', () => {
-    const saved = writeLocalSettings({ volume: 0.4, answerHotkey: 'KeyB', spectatorCleanViewDefault: false });
+    const saved = writeLocalSettings({
+      volume: 0.4,
+      answerHotkey: 'KeyB',
+      spectatorCleanViewDefault: false,
+    });
     expect(saved.volume).toBe(0.4);
     expect(saved.answerHotkey).toBe('KeyB');
     expect(saved.spectatorCleanViewDefault).toBe(false);

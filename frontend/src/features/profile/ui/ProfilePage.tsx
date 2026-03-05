@@ -54,8 +54,15 @@ export function ProfilePage() {
   }
 
   return (
-    <section className="panel stack-16">
+    <section className="panel stack-16 profile-panel">
       <h2>{t('profile.title')}</h2>
+      <div className="profile-preview">
+        {avatarUrl.trim() ? (
+          <img src={avatarUrl.trim()} alt={nickname.trim() || 'avatar'} />
+        ) : (
+          <span>{(nickname.trim()[0] ?? '?').toUpperCase()}</span>
+        )}
+      </div>
       <input
         placeholder={t('profile.nick')}
         value={nickname}
@@ -68,11 +75,11 @@ export function ProfilePage() {
         onChange={(event) => setAvatarUrl(event.target.value)}
       />
       <div className="row gap-8">
-        <button disabled={busy || !nickname.trim()} onClick={() => void onSave()}>
+        <button className="primary-action" disabled={busy || !nickname.trim()} onClick={() => void onSave()}>
           {busy ? 'Saving...' : t('profile.save')}
         </button>
       </div>
-      {message ? <p>{message}</p> : null}
+      {message ? <p className="success-text">{message}</p> : null}
       {error ? <p className="error">{error}</p> : null}
     </section>
   );

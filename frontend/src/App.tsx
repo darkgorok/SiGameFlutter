@@ -11,11 +11,16 @@ import { useI18n } from './shared/i18n/i18nContext';
 import { readLocalProfile, writeLocalProfile } from './shared/profile/localProfile';
 
 const initialLocalProfile = readLocalProfile();
+const HEAVY_EFFECTS_ENABLED = false;
 
 function LiquidGlassBackdrop() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
+    if (!HEAVY_EFFECTS_ENABLED) {
+      return () => {};
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) {
       return () => {};
@@ -135,20 +140,26 @@ function LiquidGlassBackdrop() {
       }
     };
 
-    const onPointerMove = (event: PointerEvent) => {
-      targetPointerX = event.clientX;
-      targetPointerY = event.clientY;
-    };
-
     resize();
     render(0);
-
     window.addEventListener('resize', resize);
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
+
+    if (!reduceMotion) {
+      const onPointerMove = (event: PointerEvent) => {
+        targetPointerX = event.clientX;
+        targetPointerY = event.clientY;
+      };
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+
+      return () => {
+        window.removeEventListener('resize', resize);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.cancelAnimationFrame(rafId);
+      };
+    }
 
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('pointermove', onPointerMove);
       window.cancelAnimationFrame(rafId);
     };
   }, []);
@@ -244,8 +255,17 @@ function AppShell() {
   }, []);
 
   useEffect(() => {
+    if (!HEAVY_EFFECTS_ENABLED) {
+      const root = document.documentElement;
+      root.classList.add('coarse-pointer');
+      return () => {
+        root.classList.remove('coarse-pointer');
+      };
+    }
+
     const root = document.documentElement;
     let rafId = 0;
+    let contrastRafId = 0;
     let targetX = window.innerWidth * 0.5;
     let targetY = window.innerHeight * 0.3;
     let currentX = targetX;
@@ -256,6 +276,14 @@ function AppShell() {
       '.panel, .room-card, .nav-link, button, .button-link, .modal-card, input, select, textarea';
     const contrastSelector = '.panel, .room-card, .app-header, .modal-card, input, select, textarea';
     const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const applyPointerVars = (x: number, y: number) => {
+      root.style.setProperty('--pointer-x', `${x}px`);
+      root.style.setProperty('--pointer-y', `${y}px`);
+      root.style.setProperty('--pointer-nx', `${(x / window.innerWidth - 0.5).toFixed(4)}`);
+      root.style.setProperty('--pointer-ny', `${(y / window.innerHeight - 0.5).toFixed(4)}`);
+    };
 
     const updateContrastBoost = () => {
       const items = document.querySelectorAll<HTMLElement>(contrastSelector);
@@ -266,6 +294,16 @@ function AppShell() {
         const boost = Math.max(0, 0.26 - Math.abs(normalized - 0.5) * 0.32);
         item.style.setProperty('--contrast-boost', boost.toFixed(3));
       }
+    };
+
+    const scheduleContrastBoost = () => {
+      if (contrastRafId) {
+        return;
+      }
+      contrastRafId = window.requestAnimationFrame(() => {
+        contrastRafId = 0;
+        updateContrastBoost();
+      });
     };
 
     const updateLocalHighlight = (event: PointerEvent) => {
@@ -291,21 +329,6 @@ function AppShell() {
       const y = Math.max(0, Math.min(100, localY));
       nextGlassEl.style.setProperty('--local-x', `${x.toFixed(2)}%`);
       nextGlassEl.style.setProperty('--local-y', `${y.toFixed(2)}%`);
-    };
-
-    const updateDockFocus = (x: number, y: number) => {
-      const links = document.querySelectorAll<HTMLElement>('.nav-link');
-      for (const link of links) {
-        const rect = link.getBoundingClientRect();
-        const cx = rect.left + rect.width * 0.5;
-        const cy = rect.top + rect.height * 0.5;
-        const dx = Math.abs(x - cx);
-        const dy = Math.abs(y - cy);
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const influenceRadius = 180;
-        const focus = Math.max(0, 1 - distance / influenceRadius);
-        link.style.setProperty('--dock-focus', focus.toFixed(3));
-      }
     };
 
     const playUiClick = () => {
@@ -342,42 +365,49 @@ function AppShell() {
     const sync = () => {
       currentX += (targetX - currentX) * 0.14;
       currentY += (targetY - currentY) * 0.14;
-      root.style.setProperty('--pointer-x', `${currentX}px`);
-      root.style.setProperty('--pointer-y', `${currentY}px`);
-      root.style.setProperty('--pointer-nx', `${(currentX / window.innerWidth - 0.5).toFixed(4)}`);
-      root.style.setProperty('--pointer-ny', `${(currentY / window.innerHeight - 0.5).toFixed(4)}`);
-      if (!isCoarsePointer) {
-        updateContrastBoost();
+      applyPointerVars(currentX, currentY);
+      if (Math.abs(targetX - currentX) > 0.25 || Math.abs(targetY - currentY) > 0.25) {
+        rafId = window.requestAnimationFrame(sync);
+      } else {
+        rafId = 0;
       }
-      rafId = window.requestAnimationFrame(sync);
+    };
+
+    const requestSync = () => {
+      if (reducedMotion || isCoarsePointer) {
+        currentX = targetX;
+        currentY = targetY;
+        applyPointerVars(currentX, currentY);
+        return;
+      }
+      if (!rafId) {
+        rafId = window.requestAnimationFrame(sync);
+      }
     };
 
     const onMove = (event: PointerEvent) => {
       targetX = event.clientX;
       targetY = event.clientY;
       updateLocalHighlight(event);
-      updateDockFocus(event.clientX, event.clientY);
+      requestSync();
     };
 
     const onScroll = () => {
       const max = Math.max(1, document.body.scrollHeight - window.innerHeight);
       const progress = window.scrollY / max;
       root.style.setProperty('--scroll-progress', progress.toFixed(4));
-      updateContrastBoost();
+      scheduleContrastBoost();
     };
 
     const onResize = () => {
-      updateContrastBoost();
+      scheduleContrastBoost();
+      requestSync();
     };
 
     const onPointerLeave = () => {
       if (activeGlassEl) {
         activeGlassEl.classList.remove('liquid-active');
         activeGlassEl = null;
-      }
-      const links = document.querySelectorAll<HTMLElement>('.nav-link');
-      for (const link of links) {
-        link.style.setProperty('--dock-focus', '0');
       }
     };
 
@@ -395,7 +425,9 @@ function AppShell() {
       playUiClick();
     };
 
-    if (isCoarsePointer) {
+    applyPointerVars(currentX, currentY);
+
+    if (isCoarsePointer || reducedMotion) {
       root.classList.add('coarse-pointer');
     } else {
       root.classList.remove('coarse-pointer');
@@ -407,10 +439,9 @@ function AppShell() {
     window.addEventListener('pointerdown', onPointerDown, { capture: true });
     onScroll();
     onResize();
-    sync();
 
     return () => {
-      if (!isCoarsePointer) {
+      if (!isCoarsePointer && !reducedMotion) {
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerleave', onPointerLeave);
       }
@@ -418,6 +449,8 @@ function AppShell() {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('pointerdown', onPointerDown, { capture: true });
       window.cancelAnimationFrame(rafId);
+      window.cancelAnimationFrame(contrastRafId);
+      void audioCtx?.close();
     };
   }, []);
 
@@ -453,6 +486,14 @@ export default function App() {
   const displacementRef = useRef<SVGFEDisplacementMapElement | null>(null);
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (!HEAVY_EFFECTS_ENABLED) {
+      root.classList.add('reduced-effects');
+      return () => {
+        root.classList.remove('reduced-effects');
+      };
+    }
+
     const turbulence = turbulenceRef.current;
     const displacement = displacementRef.current;
     if (!turbulence || !displacement) {
@@ -483,27 +524,29 @@ export default function App() {
 
   return (
     <>
-      <LiquidGlassBackdrop />
-      <svg width="0" height="0" aria-hidden="true" focusable="false" className="glass-filter-defs">
-        <filter id="liquid-distort" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence
-            ref={turbulenceRef}
-            type="fractalNoise"
-            baseFrequency="0.012 0.02"
-            numOctaves="2"
-            seed="13"
-            result="noise"
-          />
-          <feDisplacementMap
-            ref={displacementRef}
-            in="SourceGraphic"
-            in2="noise"
-            scale="2.8"
-            xChannelSelector="R"
-            yChannelSelector="G"
-          />
-        </filter>
-      </svg>
+      {HEAVY_EFFECTS_ENABLED ? <LiquidGlassBackdrop /> : null}
+      {HEAVY_EFFECTS_ENABLED ? (
+        <svg width="0" height="0" aria-hidden="true" focusable="false" className="glass-filter-defs">
+          <filter id="liquid-distort" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence
+              ref={turbulenceRef}
+              type="fractalNoise"
+              baseFrequency="0.012 0.02"
+              numOctaves="2"
+              seed="13"
+              result="noise"
+            />
+            <feDisplacementMap
+              ref={displacementRef}
+              in="SourceGraphic"
+              in2="noise"
+              scale="2.8"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </svg>
+      ) : null}
       <div className="app-root-layer">
         <I18nProvider>
           <AppShell />

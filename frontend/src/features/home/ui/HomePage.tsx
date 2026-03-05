@@ -35,6 +35,13 @@ export function HomePage() {
       setPackFileName('');
       return;
     }
+    const isBlitzFile = file.name.trim().toLowerCase().endsWith('.blitz');
+    if (!isBlitzFile) {
+      setSelectedPack(null);
+      setPackFileName('');
+      setError(t('home.pack_invalid'));
+      return;
+    }
 
     setError(null);
     try {
@@ -118,7 +125,7 @@ export function HomePage() {
               <input
                 className="file-picker"
                 type="file"
-                accept="application/json,.json"
+                accept=".blitz,application/json"
                 onChange={(event) => {
                   const file = event.target.files?.[0] ?? null;
                   void onPackSelected(file);

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+﻿import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react';
 import { useI18n } from '../../../shared/i18n/i18nContext';
 
 import { parseLocalPackJson } from '../data/localPack';
@@ -35,6 +35,54 @@ type EditingTarget = {
   boardId: string;
   questionId: string;
 } | null;
+
+type DeleteTarget =
+  | {
+      kind: 'round';
+      roundId: string;
+      label: string;
+    }
+  | {
+      kind: 'theme';
+      stage: StageKind;
+      boardId: string;
+      themeId: string;
+      label: string;
+    }
+  | {
+      kind: 'question';
+      stage: StageKind;
+      boardId: string;
+      questionId: string;
+      label: string;
+    };
+
+type DragItem =
+  | {
+      kind: 'round';
+      roundId: string;
+    }
+  | {
+      kind: 'theme';
+      stage: StageKind;
+      boardId: string;
+      themeId: string;
+    }
+  | {
+      kind: 'question';
+      stage: StageKind;
+      boardId: string;
+      themeId: string;
+      questionId: string;
+    };
+
+type DragMotion = {
+  axis: 'x' | 'y';
+  grabOffsetX: number;
+  grabOffsetY: number;
+  minPos: number;
+  maxPos: number;
+};
 
 type BlitzFileV1 = {
   format: 'blitz-pack';
@@ -101,8 +149,22 @@ export function PackEditorPage() {
     roundId: rounds[0].id,
   });
   const [editing, setEditing] = useState<EditingTarget>(null);
+  const [pendingDelete, setPendingDelete] = useState<DeleteTarget | null>(null);
+  const [dragItem, setDragItem] = useState<DragItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const roundRectsRef = useRef<Map<string, DOMRect>>(new Map());
+  const themeRectsRef = useRef<Map<string, DOMRect>>(new Map());
+  const questionRectsRef = useRef<Map<string, DOMRect>>(new Map());
+  const dragElementRef = useRef<HTMLElement | null>(null);
+  const dragMotionRef = useRef<DragMotion | null>(null);
+  const dragItemRef = useRef<DragItem | null>(null);
+  const lastHoverRoundIdRef = useRef<string | null>(null);
+  const lastHoverThemeIdRef = useRef<string | null>(null);
+  const lastHoverQuestionIdRef = useRef<string | null>(null);
+  const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dragRafRef = useRef<number | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
 
   const selectedBoard = useMemo(() => {
     if (selectedStage.kind === 'final') {
@@ -131,6 +193,61 @@ export function PackEditorPage() {
     return board.themes.find((theme) => theme.id === editingQuestion.themeId)?.title ?? '';
   }, [editing, editingQuestion, finalRound, rounds]);
 
+  const deletePrompt = useMemo(() => {
+    if (!pendingDelete) return null;
+    if (pendingDelete.kind === 'round') {
+      return {
+        title: 'Удалить раунд?',
+        description: `Раунд "${pendingDelete.label}" будет удален вместе со всеми темами и вопросами.`,
+      };
+    }
+    if (pendingDelete.kind === 'theme') {
+      return {
+        title: 'Удалить тему?',
+        description: `Тема "${pendingDelete.label}" будет удалена вместе со всеми вопросами.`,
+      };
+    }
+    return {
+      title: 'Удалить вопрос?',
+      description: `Вопрос "${pendingDelete.label}" будет удален без возможности восстановления.`,
+    };
+  }, [pendingDelete]);
+
+  useLayoutEffect(() => {
+    function animateReorder(selector: string, keyAttr: string, rectsRef: { current: Map<string, DOMRect> }): void {
+      const elements = Array.from(document.querySelectorAll<HTMLElement>(selector));
+      const nextRects = new Map<string, DOMRect>();
+      for (const element of elements) {
+        const key = element.getAttribute(keyAttr);
+        if (!key) continue;
+        const nextRect = element.getBoundingClientRect();
+        nextRects.set(key, nextRect);
+        if (element.classList.contains('drag-live')) {
+          continue;
+        }
+        const prevRect = rectsRef.current.get(key);
+        if (!prevRect) continue;
+        const dx = prevRect.left - nextRect.left;
+        const dy = prevRect.top - nextRect.top;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+        element.animate(
+          [
+            { transform: `translate(${dx}px, ${dy}px)` },
+            { transform: 'translate(0, 0)' },
+          ],
+          {
+            duration: 320,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+          },
+        );
+      }
+      rectsRef.current = nextRects;
+    }
+    animateReorder('.board-tab-item[data-round-id]', 'data-round-id', roundRectsRef);
+    animateReorder('.pack-board-row[data-theme-id]', 'data-theme-id', themeRectsRef);
+    animateReorder('.pack-question-wrap[data-question-id]', 'data-question-id', questionRectsRef);
+  }, [rounds, selectedBoard, selectedStage]);
+
   function clearFeedback(): void {
     setError(null);
     setMessage(null);
@@ -138,6 +255,190 @@ export function PackEditorPage() {
 
   function updateRound(roundId: string, mutate: (round: BoardRound) => BoardRound): void {
     setRounds((current) => current.map((round) => (round.id === roundId ? mutate(round) : round)));
+  }
+
+  function setDragItemSynced(next: DragItem | null): void {
+    dragItemRef.current = next;
+    setDragItem(next);
+  }
+
+  function beginElementDrag(
+    event: PointerEvent<HTMLElement>,
+    dragTarget: HTMLElement,
+    pointerId: number,
+    axis: 'x' | 'y',
+    minPos: number,
+    maxPos: number,
+  ): void {
+    lastHoverRoundIdRef.current = null;
+    lastHoverThemeIdRef.current = null;
+    lastHoverQuestionIdRef.current = null;
+    const targetRect = dragTarget.getBoundingClientRect();
+    activePointerIdRef.current = pointerId;
+    dragElementRef.current = dragTarget;
+    dragPointerRef.current = { x: event.clientX, y: event.clientY };
+    dragMotionRef.current = {
+      axis,
+      grabOffsetX: event.clientX - targetRect.left,
+      grabOffsetY: event.clientY - targetRect.top,
+      minPos,
+      maxPos,
+    };
+    if (dragRafRef.current !== null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    dragTarget.classList.add('drag-live');
+  }
+
+  function processDragFrame(): void {
+    dragRafRef.current = null;
+    const dragTarget = dragElementRef.current;
+    const motion = dragMotionRef.current;
+    const pointer = dragPointerRef.current;
+    if (!dragTarget || !motion || !pointer) {
+      return;
+    }
+
+    const prevTransform = dragTarget.style.transform;
+    dragTarget.style.transform = '';
+    const baseRect = dragTarget.getBoundingClientRect();
+    dragTarget.style.transform = prevTransform;
+
+    if (motion.axis === 'x') {
+      const desiredLeft = pointer.x - motion.grabOffsetX;
+      const clampedLeft = Math.min(motion.maxPos, Math.max(motion.minPos, desiredLeft));
+      const dx = clampedLeft - baseRect.left;
+      dragTarget.style.transform = `translate3d(${dx}px, 0, 0)`;
+    } else {
+      const desiredTop = pointer.y - motion.grabOffsetY;
+      const clampedTop = Math.min(motion.maxPos, Math.max(motion.minPos, desiredTop));
+      const dy = clampedTop - baseRect.top;
+      dragTarget.style.transform = `translate3d(0, ${dy}px, 0)`;
+    }
+
+    // Dynamic live-reorder is temporarily disabled.
+    return;
+  }
+
+  function updateDraggedElementPosition(event: PointerEvent | globalThis.PointerEvent): void {
+    if (event.clientX === 0 && event.clientY === 0) {
+      return;
+    }
+    dragPointerRef.current = { x: event.clientX, y: event.clientY };
+    if (dragRafRef.current !== null) {
+      return;
+    }
+    dragRafRef.current = requestAnimationFrame(processDragFrame);
+  }
+
+  function handleDragEnd(): void {
+    if (dragRafRef.current !== null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    if (dragElementRef.current) {
+      dragElementRef.current.classList.remove('drag-live');
+      dragElementRef.current.style.transform = '';
+    }
+    dragElementRef.current = null;
+    dragPointerRef.current = null;
+    dragMotionRef.current = null;
+    activePointerIdRef.current = null;
+    lastHoverRoundIdRef.current = null;
+    lastHoverThemeIdRef.current = null;
+    lastHoverQuestionIdRef.current = null;
+    setDragItemSynced(null);
+  }
+
+  useEffect(() => {
+    if (!dragItem) {
+      return;
+    }
+
+    function onPointerMove(event: globalThis.PointerEvent): void {
+      if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) {
+        return;
+      }
+      updateDraggedElementPosition(event);
+    }
+
+    function onPointerUp(event: globalThis.PointerEvent): void {
+      if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) {
+        return;
+      }
+      handleDragEnd();
+    }
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [dragItem]);
+
+  function startRoundDrag(event: PointerEvent<HTMLElement>, roundId: string): void {
+    const roundItem = event.currentTarget.closest('.board-tab-item') as HTMLElement | null;
+    if (roundItem) {
+      beginElementDrag(
+        event,
+        roundItem,
+        event.pointerId,
+        'x',
+        Number.NEGATIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+      );
+    }
+    setDragItemSynced({ kind: 'round', roundId });
+  }
+
+  function startThemeDrag(
+    event: PointerEvent<HTMLElement>,
+    stage: StageKind,
+    boardId: string,
+    themeId: string,
+  ): void {
+    const themeRow = event.currentTarget.closest('.pack-board-row') as HTMLElement | null;
+    if (themeRow) {
+      beginElementDrag(
+        event,
+        themeRow,
+        event.pointerId,
+        'y',
+        Number.NEGATIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+      );
+    }
+    setDragItemSynced({ kind: 'theme', stage, boardId, themeId });
+  }
+
+  function startQuestionDrag(
+    event: PointerEvent<HTMLElement>,
+    stage: StageKind,
+    boardId: string,
+    themeId: string,
+    questionId: string,
+  ): void {
+    const questionWrap = event.currentTarget.closest('.pack-question-wrap') as HTMLElement | null;
+    const themeRow = event.currentTarget.closest('.pack-board-row') as HTMLElement | null;
+    const themeQuestions = event.currentTarget.closest('.pack-theme-questions') as HTMLElement | null;
+
+    if (questionWrap && themeRow && themeQuestions) {
+      const startRect = questionWrap.getBoundingClientRect();
+      const themeRect = themeRow.getBoundingClientRect();
+      const questionItems = Array.from(themeQuestions.querySelectorAll<HTMLElement>('.pack-question-wrap'));
+      const lastQuestion = questionItems[questionItems.length - 1];
+      const lastRect = lastQuestion?.getBoundingClientRect() ?? startRect;
+      const minLeft = themeRect.left;
+      const maxLeft = lastRect.right - startRect.width;
+      beginElementDrag(event, questionWrap, event.pointerId, 'x', minLeft, maxLeft);
+    }
+
+    setDragItemSynced({ kind: 'question', stage, boardId, themeId, questionId });
   }
 
   function addRound(): void {
@@ -249,24 +550,6 @@ export function PackEditorPage() {
     }));
   }
 
-  function removeTheme(themeId: string): void {
-    clearFeedback();
-    if (selectedStage.kind === 'final') {
-      setFinalRound((current) => ({
-        ...current,
-        themes: current.themes.filter((theme) => theme.id !== themeId),
-        questions: current.questions.filter((question) => question.themeId !== themeId),
-      }));
-      return;
-    }
-
-    updateRound(selectedStage.roundId, (round) => ({
-      ...round,
-      themes: round.themes.filter((theme) => theme.id !== themeId),
-      questions: round.questions.filter((question) => question.themeId !== themeId),
-    }));
-  }
-
   function addQuestion(themeId: string): void {
     clearFeedback();
     const question = createEmptyQuestion(themeId);
@@ -340,25 +623,51 @@ export function PackEditorPage() {
     }));
   }
 
-  function deleteEditingQuestion(): void {
-    if (!editing) return;
-    if (editing.stage === 'final') {
-      setFinalRound((current) => ({
-        ...current,
-        questions: current.questions.filter((question) => question.id !== editing.questionId),
-      }));
-      setEditing(null);
-      return;
-    }
-    updateRound(editing.boardId, (round) => ({
-      ...round,
-      questions: round.questions.filter((question) => question.id !== editing.questionId),
-    }));
+  function closeEditor(): void {
     setEditing(null);
   }
 
-  function closeEditor(): void {
-    setEditing(null);
+  function requestDelete(target: DeleteTarget): void {
+    clearFeedback();
+    setPendingDelete(target);
+  }
+
+  function closeDeletePrompt(): void {
+    setPendingDelete(null);
+  }
+
+  function confirmDelete(): void {
+    if (!pendingDelete) return;
+
+    if (pendingDelete.kind === 'round') {
+      removeRound(pendingDelete.roundId);
+      setPendingDelete(null);
+      return;
+    }
+
+    if (pendingDelete.kind === 'theme') {
+      if (pendingDelete.stage === 'final') {
+        setFinalRound((current) => ({
+          ...current,
+          themes: current.themes.filter((theme) => theme.id !== pendingDelete.themeId),
+          questions: current.questions.filter((question) => question.themeId !== pendingDelete.themeId),
+        }));
+      } else {
+        updateRound(pendingDelete.boardId, (round) => ({
+          ...round,
+          themes: round.themes.filter((theme) => theme.id !== pendingDelete.themeId),
+          questions: round.questions.filter((question) => question.themeId !== pendingDelete.themeId),
+        }));
+      }
+      setPendingDelete(null);
+      return;
+    }
+
+    removeQuestionById(pendingDelete.stage, pendingDelete.boardId, pendingDelete.questionId);
+    if (editing?.questionId === pendingDelete.questionId) {
+      setEditing(null);
+    }
+    setPendingDelete(null);
   }
 
   async function importFromFile(file: File): Promise<void> {
@@ -530,7 +839,7 @@ export function PackEditorPage() {
   }
 
   return (
-    <section className="stack-16">
+    <section className="stack-16 pack-editor-layout">
       <article className="panel stack-8 glass-hero">
         <div className="row gap-8 control-row">
           <h2>{t('packs.title')}</h2>
@@ -555,22 +864,50 @@ export function PackEditorPage() {
         </div>
       </article>
 
-      <article className="panel stack-8">
+      <article className="panel stack-8 pack-editor-board-panel">
         <div className="board-tabs">
           {rounds.map((round) => (
-            <div key={round.id} className="board-tab-item">
+            <div key={round.id} className="board-tab-item" data-round-id={round.id}>
               <button
                 className={
                   selectedStage.kind === 'round' && selectedStage.roundId === round.id
-                    ? 'primary-action'
-                    : 'secondary-action'
+                    ? 'primary-action pill-with-delete'
+                    : 'secondary-action pill-with-delete'
                 }
-                onClick={() => setSelectedStage({ kind: 'round', roundId: round.id })}
+                onClick={(event) => {
+                  const target = event.target as HTMLElement;
+                  if (target.closest('.drag-handle')) {
+                    return;
+                  }
+                  if (target.closest('.pill-delete')) {
+                    requestDelete({
+                      kind: 'round',
+                      roundId: round.id,
+                      label: round.title,
+                    });
+                    return;
+                  }
+                  setSelectedStage({ kind: 'round', roundId: round.id });
+                }}
               >
-                {round.title}
-              </button>
-              <button className="danger-button board-tab-delete" onClick={() => removeRound(round.id)}>
-                x
+                <span
+                  className="drag-handle"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    startRoundDrag(event, round.id);
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  aria-label="Перетащить раунд"
+                  title="Перетащить"
+                >
+                  ≡
+                </span>
+                <span>{round.title}</span>
+                <span className="pill-delete" aria-label="Удалить раунд">
+                  x
+                </span>
               </button>
             </div>
           ))}
@@ -589,35 +926,100 @@ export function PackEditorPage() {
           {selectedBoard.themes.map((theme) => {
             const themeQuestions = selectedBoard.questions.filter((question) => question.themeId === theme.id);
             return (
-              <div key={theme.id} className="pack-board-row">
+              <div key={theme.id} className="pack-board-row" data-theme-id={theme.id}>
                 <div className="pack-theme-left">
-                  <button className="pack-theme-title" onClick={() => renameTheme(theme.id)}>
-                    {theme.title}
-                  </button>
-                  <button className="danger-button pack-theme-delete" onClick={() => removeTheme(theme.id)}>
-                    x
+                  <button
+                    className="pack-theme-title pill-with-delete"
+                    onClick={(event) => {
+                      const target = event.target as HTMLElement;
+                      if (target.closest('.drag-handle')) {
+                        return;
+                      }
+                      if (target.closest('.pill-delete')) {
+                        requestDelete({
+                          kind: 'theme',
+                          stage: selectedStage.kind,
+                          boardId: selectedStage.kind === 'final' ? 'final' : selectedStage.roundId,
+                          themeId: theme.id,
+                          label: theme.title,
+                        });
+                        return;
+                      }
+                      renameTheme(theme.id);
+                    }}
+                  >
+                    <span
+                      className="drag-handle"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        startThemeDrag(
+                          event,
+                          selectedStage.kind,
+                          selectedStage.kind === 'final' ? 'final' : selectedStage.roundId,
+                          theme.id,
+                        );
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      aria-label="Перетащить тему"
+                      title="Перетащить"
+                    >
+                      ≡
+                    </span>
+                    <span>{theme.title}</span>
+                    <span className="pill-delete" aria-label="Удалить тему">
+                      x
+                    </span>
                   </button>
                 </div>
                 <div className="pack-theme-questions">
                   {themeQuestions.map((question) => (
-                    <div key={question.id} className="pack-question-wrap">
+                    <div key={question.id} className="pack-question-wrap" data-question-id={question.id}>
                       <button
-                        className="pack-question-card"
-                        onClick={() => openQuestion(theme.id, question.id)}
+                        className="pack-question-card pill-with-delete"
+                        onClick={(event) => {
+                          const target = event.target as HTMLElement;
+                          if (target.closest('.drag-handle')) {
+                            return;
+                          }
+                          if (target.closest('.pill-delete')) {
+                            requestDelete({
+                              kind: 'question',
+                              stage: selectedStage.kind,
+                              boardId: selectedStage.kind === 'final' ? 'final' : selectedStage.roundId,
+                              questionId: question.id,
+                              label: question.text.trim() || 'Без текста',
+                            });
+                            return;
+                          }
+                          openQuestion(theme.id, question.id);
+                        }}
                       >
-                        {question.text.trim() ? question.text : '+'}
-                      </button>
-                      <button
-                        className="danger-button pack-question-delete"
-                        onClick={() =>
-                          removeQuestionById(
-                            selectedStage.kind,
-                            selectedStage.kind === 'final' ? 'final' : selectedStage.roundId,
-                            question.id,
-                          )
-                        }
-                      >
-                        x
+                        <span
+                          className="drag-handle"
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            startQuestionDrag(
+                              event,
+                              selectedStage.kind,
+                              selectedStage.kind === 'final' ? 'final' : selectedStage.roundId,
+                              theme.id,
+                              question.id,
+                            );
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                          onMouseDown={(event) => event.stopPropagation()}
+                          aria-label="Перетащить вопрос"
+                          title="Перетащить"
+                        >
+                          ≡
+                        </span>
+                        <span className="pack-question-label">{question.text.trim() ? question.text : '+'}</span>
+                        <span className="pill-delete" aria-label="Удалить вопрос">
+                          x
+                        </span>
                       </button>
                     </div>
                   ))}
@@ -708,7 +1110,18 @@ export function PackEditorPage() {
               <button className="primary-action" onClick={closeEditor}>
                 {t('profile.save')}
               </button>
-              <button className="danger-button" onClick={deleteEditingQuestion}>
+              <button
+                className="danger-button"
+                onClick={() =>
+                  requestDelete({
+                    kind: 'question',
+                    stage: editing.stage,
+                    boardId: editing.boardId,
+                    questionId: editing.questionId,
+                    label: editingQuestion.text.trim() || 'Без текста',
+                  })
+                }
+              >
                 {t('editor.delete')}
               </button>
               <button className="ghost-button" onClick={closeEditor}>
@@ -718,6 +1131,27 @@ export function PackEditorPage() {
           </section>
         </div>
       ) : null}
+
+      {pendingDelete && deletePrompt ? (
+        <div className="modal-backdrop" onClick={closeDeletePrompt}>
+          <section className="modal-card panel stack-16" onClick={(event) => event.stopPropagation()}>
+            <h3>{deletePrompt.title}</h3>
+            <p className="subtle-copy">{deletePrompt.description}</p>
+            <div className="row gap-8 dialog-actions">
+              <button className="danger-button" onClick={confirmDelete}>
+                {t('editor.delete')}
+              </button>
+              <button className="ghost-button" onClick={closeDeletePrompt}>
+                {t('settings.cancel')}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
     </section>
   );
 }
+
+
+
